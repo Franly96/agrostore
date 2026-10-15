@@ -1,0 +1,189 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../../components/agrostore/agrostore.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Agrostore design system tokens (light only). Spacing needs no tokens:
+   Tailwind's p-1 / p-2 / p-4 / p-6 are space-1 (4px) / space-2 (8px) / space-4 (16px) / space-6 (24px). */
+@theme static {
+  --color-surface: #ffffff;
+  --color-surface-soft: #f4f8f2;
+  --color-ink: #1f2a1d;
+  --color-ink-muted: #5b6658;
+  --color-line: #dfe7da;
+  --color-green-100: #e3f1e1;
+  --color-green-600: #2e7d32;
+  --color-green-800: #1b5e20;
+  --color-mango: #f2a33a;
+  --color-danger: #c62828;
+
+  --font-sans: var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: var(--font-sans);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-pill: 9999px;
+
+  --text-display: 40px;
+  --text-display--line-height: 44px;
+  --text-display--font-weight: 800;
+  --text-heading: 28px;
+  --text-heading--line-height: 34px;
+  --text-heading--font-weight: 700;
+  --text-title: 20px;
+  --text-title--line-height: 26px;
+  --text-title--font-weight: 600;
+  --text-body: 16px;
+  --text-body--line-height: 24px;
+  --text-body--font-weight: 400;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 20px;
+  --text-body-sm--font-weight: 400;
+  --text-price: 18px;
+  --text-price--line-height: 24px;
+  --text-price--font-weight: 700;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-label--font-weight: 600;
+}
+
+/* Design-system names used by components/agrostore/agrostore.css */
+:root {
+  --surface: var(--color-surface);
+  --surface-soft: var(--color-surface-soft);
+  --ink: var(--color-ink);
+  --ink-muted: var(--color-ink-muted);
+  --line: var(--color-line);
+  --green-100: var(--color-green-100);
+  --green-600: var(--color-green-600);
+  --green-800: var(--color-green-800);
+  --mango: var(--color-mango);
+  --danger: var(--color-danger);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-4: 16px;
+  --space-6: 24px;
+}
+
+:root {
+  --background: var(--color-surface);
+  --foreground: var(--color-ink);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-green-600);
+  --primary-foreground: var(--color-surface);
+  --secondary: var(--color-green-100);
+  --secondary-foreground: var(--color-green-800);
+  --muted: var(--color-surface-soft);
+  --muted-foreground: var(--color-ink-muted);
+  --accent: var(--color-green-100);
+  --accent-foreground: var(--color-green-800);
+  --destructive: var(--color-danger);
+  --border: var(--color-line);
+  --input: var(--color-ink-muted);
+  --ring: var(--color-green-600);
+  --chart-1: var(--color-green-600);
+  --chart-2: var(--color-green-800);
+  --chart-3: var(--color-mango);
+  --chart-4: var(--color-ink-muted);
+  --chart-5: var(--color-green-100);
+  --radius: 12px;
+  --sidebar: var(--color-surface-soft);
+  --sidebar-foreground: var(--color-ink);
+  --sidebar-primary: var(--color-green-600);
+  --sidebar-primary-foreground: var(--color-surface);
+  --sidebar-accent: var(--color-green-100);
+  --sidebar-accent-foreground: var(--color-green-800);
+  --sidebar-border: var(--color-line);
+  --sidebar-ring: var(--color-green-600);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
