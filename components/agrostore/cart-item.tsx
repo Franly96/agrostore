@@ -65,7 +65,7 @@ export function CartItem({
         <span className="ag-cart-total" aria-label="Subtotal">
           {formatRD(price * quantity)}
         </span>
-        <Button variant="ghost" size="sm" onClick={onRemove}>
+        <Button variant="ghost" size="sm" className="min-h-11" onClick={onRemove}>
           Eliminar
         </Button>
       </div>

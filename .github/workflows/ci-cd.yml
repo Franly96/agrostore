@@ -1,0 +1,119 @@
+name: CI/CD
+
+# Pull requests: checks → migrate the preview database → preview deployment (URL commented on the PR).
+# Pushes to main: checks → migrate the production database → production deployment.
+# Vercel builds the app (it has the environment variables); this workflow decides when.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_CLI: vercel@61.1.0
+
+jobs:
+  checks:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder so modules and drizzle-kit can load; nothing in this job connects to it.
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Migrations are consistent
+        run: npm run db:check
+      - name: Every schema change has a migration
+        run: |
+          npx drizzle-kit generate --name=ci-check
+          if [ -n "$(git status --porcelain drizzle)" ]; then
+            echo "::error::src/db/schema.ts changed without a migration. Run 'npm run db:generate' and commit the drizzle/ folder."
+            git status --porcelain drizzle
+            exit 1
+          fi
+
+  preview:
+    name: Preview deployment
+    needs: checks
+    # Secrets aren't available to pull requests from forks.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    concurrency:
+      group: preview-database
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Migrate preview database
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.PREVIEW_DATABASE_URL_UNPOOLED }}
+        run: npm run db:migrate
+      - name: Deploy to Vercel (preview)
+        id: deploy
+        run: |
+          url=$(npx --yes "$VERCEL_CLI" deploy --yes --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Comment preview URL on the PR
+        uses: actions/github-script@v8
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        with:
+          script: |
+            const marker = "<!-- agrostore-preview -->";
+            const body = `${marker}\n**Preview:** ${process.env.PREVIEW_URL}\n\nCommit ${context.sha.slice(0, 7)}. Sign in with your Vercel account to open it (deployment protection).`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: context.issue.number });
+            const existing = comments.find((c) => c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+            }
+
+  production:
+    name: Production deployment
+    needs: checks
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Migrate production database
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.PRODUCTION_DATABASE_URL_UNPOOLED }}
+        run: npm run db:migrate
+      - name: Deploy to Vercel (production)
+        run: |
+          url=$(npx --yes "$VERCEL_CLI" deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "Production: $url" >> "$GITHUB_STEP_SUMMARY"

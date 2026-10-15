@@ -21,7 +21,17 @@ export const adminPlugin = admin({
   bannedUserMessage: "Tu cuenta está desactivada. Contacta a Agrostore.",
 });
 
+// BETTER_AUTH_URL is set for production (and locally). Preview deployments
+// don't set it, so the deployment's own Vercel URL is used instead.
+const vercelHosts = [
+  process.env.VERCEL_BRANCH_URL,
+  process.env.VERCEL_URL,
+  process.env.VERCEL_PROJECT_PRODUCTION_URL,
+].filter((host): host is string => Boolean(host));
+
 export const authOptions = {
+  baseURL: process.env.BETTER_AUTH_URL ?? (vercelHosts[0] ? `https://${vercelHosts[0]}` : undefined),
+  trustedOrigins: vercelHosts.map((host) => `https://${host}`),
   database: drizzleAdapter(db, { provider: "pg", schema, usePlural: true }),
   advanced: { database: { generateId: "serial" } },
   emailAndPassword: {

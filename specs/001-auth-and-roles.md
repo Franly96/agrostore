@@ -43,7 +43,7 @@
 | D7 | **Authorization in three layers:** (1) `proxy.ts` cookie check only to redirect fast, (2) a **Data Access Layer** (`requireRole`) at the top of every protected page and **every** server action, (3) ownership in the SQL `WHERE` (`seller_id = currentUser.id`) | This is the pattern in the Next authentication guide. Layer 1 can be bypassed, so it never decides access. Layers 2–3 do. Layouts are never used as the guard, since they don't re-run on every navigation and server actions are public endpoints. | Checking in layouts only: unsafe. Checking in the proxy with a DB lookup: runs on every request and prefetch. |
 | D8 | **Cache Components pattern:** panel layouts and page headings stay static (part of the static shell). Everything that reads the session sits in an inner async component under `<Suspense>` with a skeleton, the same way `productos/[id]` works today. | With Cache Components, reading cookies/headers outside `<Suspense>` triggers the blocking-route error. This keeps navigations instant. | `export const instant = false` on the panels: allowed by the docs, but throws away the shell. Only a fallback. |
 | D9 | **One Zod schema per form, shared by client and server** (`src/lib/validation/*`). The server is the authority; the client runs the same schema before submit for instant errors. | Same rules and the same Spanish messages in both places, with no drift. | Separate client rules (what `ProductForm` has today): would drift from the server. |
-| D10 | **URLs:** seller panel at **`/panel`**, admin at **`/admin`** | `/vendedores/[id]` is already the public seller profile, so `/vendedor…` for the private panel would be confusing. `/panel` is short and works for future roles. | `/vender` (the old placeholder name). |
+| D10 | **URLs:** seller panel at **`/vendor`**, admin at **`/admin`** | `/vendedores/[id]` is already the public seller profile, so a Spanish `/vendedor…` prefix for the private panel would be confusing; the English `/vendor` can't be mixed up with it. Updated 2026-10-14: the panel moved from `/panel` to `/vendor`, and the auth pages from `/ingresar` and `/registro` to `/auth/login` and `/auth/registrar` (future: `/auth/recuperar-contrasena`). | `/vender` (the old placeholder name). |
 | D11 | **Stock defaults to 0; "unlimited" is a per-product setting** (`unlimited_stock` boolean) | Review decision Q6. A new product is never accidentally unlimited, and sellers opt in per product. | Nullable `stock` meaning "no limit" (rejected in review). |
 | D12 | **Contact details live in one config file with placeholder values** (`src/lib/site-config.ts`) | Review decision Q4. The real WhatsApp/phone/email/hours are added later by changing one file. | Hard-coding them in pages. |
 
@@ -55,11 +55,11 @@
 |---|---|---|---|
 | Browse store (`/`, `/productos/*`) | ✅ | ✅ | ✅ |
 | Sign in / sign out | ✅ / — | — / ✅ | — / ✅ |
-| `/panel/**` | → `/ingresar` | ✅ | → `/admin` |
+| `/vendor/**` | → `/auth/login` | ✅ | → `/admin` |
 | List / create / edit **own** products | ❌ | ✅ | ❌ |
 | Edit another seller's product | ❌ | ❌ (404) | ❌ |
 | Change own password | ❌ | ✅ | ✅ |
-| `/admin/**` | → `/ingresar` | → `/panel` | ✅ |
+| `/admin/**` | → `/auth/login` | → `/vendor` | ✅ |
 | List / create / edit sellers, set password, deactivate | ❌ | ❌ | ✅ |
 | Deactivate self or change own role | — | — | ❌ (blocked) |
 
@@ -122,13 +122,13 @@ All UI uses `@/components/agrostore`, token classes only, Spanish copy, and the 
 
 | URL | File (under `src/app/`) | Access | Content |
 |---|---|---|---|
-| `/ingresar` | `(auth)/ingresar/page.tsx` | public; signed-in users are redirected to their panel | Email + password (`TextField`), "Ingresar" primary button, general error area. Honors `?next=` (§8). |
-| `/registro` | `(auth)/registro/page.tsx` | public | Replaced by a short message: "Las cuentas de vendedor las crea el equipo de Agrostore." + WhatsApp, phone, email and hours from `site-config.ts` (placeholders for now) |
-| `/panel` | `panel/page.tsx` | seller | Redirects to `/panel/productos` |
-| `/panel/productos` | `panel/productos/page.tsx` | seller | Own products: name, category, `PriceTag`, stock count, "Sin límite" or `Badge` "Agotado", "Editar" link. Cards on phone, table from `md:`. Empty state with a "Publicar producto" `ButtonLink`. Success banner after save. |
-| `/panel/productos/nuevo` | `panel/productos/nuevo/page.tsx` | seller | `ProductForm` → `createProduct` |
-| `/panel/productos/[id]` | `panel/productos/[id]/page.tsx` | seller, owner only | `ProductForm` prefilled → `updateProduct`. 404 if not theirs or invalid ID. |
-| `/panel/cuenta` | `panel/cuenta/page.tsx` | seller | Read-only profile (farm, phone, province) + change-password form |
+| `/auth/login` | `auth/login/page.tsx` | public; signed-in users are redirected to their panel | Email + password (`TextField`), "Ingresar" primary button, general error area. Honors `?next=` (§8). |
+| `/auth/registrar` | `auth/registrar/page.tsx` | public | Replaced by a short message: "Las cuentas de vendedor las crea el equipo de Agrostore." + WhatsApp, phone, email and hours from `site-config.ts` (placeholders for now) |
+| `/vendor` | `vendor/page.tsx` | seller | Redirects to `/vendor/productos` |
+| `/vendor/productos` | `vendor/productos/page.tsx` | seller | Own products: name, category, `PriceTag`, stock count, "Sin límite" or `Badge` "Agotado", "Editar" link. Cards on phone, table from `md:`. Empty state with a "Publicar producto" `ButtonLink`. Success banner after save. |
+| `/vendor/productos/nuevo` | `vendor/productos/nuevo/page.tsx` | seller | `ProductForm` → `createProduct` |
+| `/vendor/productos/[id]` | `vendor/productos/[id]/page.tsx` | seller, owner only | `ProductForm` prefilled → `updateProduct`. 404 if not theirs or invalid ID. |
+| `/vendor/cuenta` | `vendor/cuenta/page.tsx` | seller | Read-only profile (farm, phone, province) + change-password form |
 | `/admin` | `admin/page.tsx` | admin | Redirects to `/admin/vendedores` |
 | `/admin/vendedores` | `admin/vendedores/page.tsx` | admin | Sellers: farm name, contact, email, province, product count, status `Badge` (green "Activo" / danger "Desactivado"). Name/email search (`SearchBar`, GET `?q=`). Cards on phone, table from `md:`. "Nuevo vendedor" button. |
 | `/admin/vendedores/nuevo` | `admin/vendedores/nuevo/page.tsx` | admin | `VendorForm`: contact name, farm name, email, phone, province (`Select` with `PROVINCES`), temporary password |
@@ -136,9 +136,9 @@ All UI uses `@/components/agrostore`, token classes only, Spanish copy, and the 
 | `/admin/cuenta` | `admin/cuenta/page.tsx` | admin | Change own password |
 | `/api/auth/[...all]` | `api/auth/[...all]/route.ts` | — | `toNextJsHandler(auth)` (Better Auth endpoints, used for sign-out and session APIs) |
 
-**Layouts.** `panel/layout.tsx` and `admin/layout.tsx` share one new `components/dashboard-shell.tsx`: on phones, the title and a swipeable row of section links above the content; from `md:`, a sidebar (224px) + content. Both list "Ver tienda" and a "Salir" form button (`signOut` action). Both layouts stay static, with no session read at the top level.
+**Layouts.** `vendor/layout.tsx` and `admin/layout.tsx` share one new `components/dashboard-shell.tsx`: on phones, the title and a swipeable row of section links above the content; from `md:`, a sidebar (224px) + content. Both list "Ver tienda" and a "Salir" form button (`signOut` action). Both layouts stay static, with no session read at the top level.
 
-**Header (`components/site-header.tsx`).** The "Ingresar" button is replaced by `<Suspense fallback={<IngresarButton/>}><AccountLink/></Suspense>`. `AccountLink` reads the session and shows "Ingresar" (signed out), "Mi panel" (seller) or "Admin" (admin). The fallback is the same size, so the layout doesn't shift.
+**Header (`components/site-header.tsx`).** The header has **no sign-in button** (removed 2026-10-14; `/auth/login` is reached by URL only for now). It holds `<Suspense fallback={null}><AccountLink/></Suspense>`. `AccountLink` reads the session and renders its own `<li>` with "Mi panel" (seller) or "Admin" (admin), and nothing for visitors, so a signed-out header has no empty flex item. For signed-in users the button appears once the session read resolves, which nudges the items to its left; visitors, the common case, see no shift.
 
 **Public store.** The home grid and product detail:
 - show `farm_name ?? name` as the seller;
@@ -162,10 +162,10 @@ src/lib/validation/vendor.ts     vendorCreateSchema, vendorUpdateSchema, setPass
 src/lib/data/products.ts         seller-scoped product queries (server-only)
 src/lib/data/vendors.ts          admin vendor queries (server-only)
 src/lib/site-config.ts           contact details (placeholders until real values are provided)
-src/proxy.ts                     optimistic redirect for /panel, /admin
+src/proxy.ts                     optimistic redirect for /vendor, /admin
 src/app/api/auth/[...all]/route.ts
-src/app/(auth)/ingresar/{page.tsx, login-form.tsx, actions.ts}
-src/app/panel/…                  pages above + actions.ts per feature + small client form wrappers
+src/app/auth/login/{page.tsx, login-form.tsx, actions.ts}
+src/app/vendor/…                  pages above + actions.ts per feature + small client form wrappers
 src/app/admin/…                  pages above + actions.ts + vendor-form.tsx
 components/dashboard-shell.tsx   shared responsive panel layout
 components/account-link.tsx      header session-aware link
@@ -211,7 +211,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 });
 
 export async function requireRole(role: "admin" | "seller", from?: string): Promise<CurrentUser>
-// no user → redirect(`/ingresar?next=${from}`); wrong role → redirect(roleHome(user.role))
+// no user → redirect(`/auth/login?next=${from}`); wrong role → redirect(roleHome(user.role))
 ```
 
 - `cache` is React's per-request dedupe. A page, its header link and its action check read the session once per request.
@@ -239,11 +239,11 @@ Every action follows the same steps, in this order:
 
 | Action | File | Calls |
 |---|---|---|
-| `signIn(prev, formData)` | `(auth)/ingresar/actions.ts` | `loginSchema` → `auth.api.signInEmail`. Any failure → "Correo o contraseña incorrectos." (one message, so it doesn't reveal which emails exist). Banned → "Tu cuenta está desactivada. Contacta a Agrostore." Success → `redirect(safeNext ?? roleHome(role))` |
+| `signIn(prev, formData)` | `auth/login/actions.ts` | `loginSchema` → `auth.api.signInEmail`. Any failure → "Correo o contraseña incorrectos." (one message, so it doesn't reveal which emails exist). Banned → "Tu cuenta está desactivada. Contacta a Agrostore." Success → `redirect(safeNext ?? roleHome(role))` |
 | `signOut()` | same | `auth.api.signOut({ headers })` → `redirect("/")` |
-| `createProduct(prev, fd)` | `panel/productos/actions.ts` | `productSchema` → insert with `seller_id = user.id` |
+| `createProduct(prev, fd)` | `vendor/productos/actions.ts` | `productSchema` → insert with `seller_id = user.id` |
 | `updateProduct(productId, prev, fd)` | same | `productSchema` → `UPDATE … WHERE id = $id AND seller_id = user.id`; 0 rows → `notFound()` |
-| `changePassword(prev, fd)` | `panel/cuenta/actions.ts` (admin reuses it) | `changePasswordSchema` → `auth.api.changePassword` (`revokeOtherSessions: true`) |
+| `changePassword(prev, fd)` | `vendor/cuenta/actions.ts` (admin reuses it) | `changePasswordSchema` → `auth.api.changePassword` (`revokeOtherSessions: true`) |
 | `createVendor(prev, fd)` | `admin/vendedores/actions.ts` | `vendorCreateSchema` → `auth.api.createUser({ body: { email, password, name, role: "seller", data: { farmName, phone, province } }, headers })` |
 | `updateVendor(vendorId, prev, fd)` | same | `vendorUpdateSchema` → check the target is a seller → `auth.api.adminUpdateUser({ body: { userId, data }, headers })` |
 | `setVendorPassword(vendorId, prev, fd)` | same | `setPasswordSchema` → `auth.api.setUserPassword` + `revokeUserSessions` |
@@ -299,7 +299,7 @@ Bound arguments (`updateProduct.bind(null, id)`) can be changed by the client, s
 
 ## 7. Cache Components and rendering
 
-- `/panel/**` and `/admin/**` pages each have the shape `static heading → <Suspense fallback={Skeleton}> → <Inner/>`, where `Inner` calls `requireRole` and then loads data. This is the same pattern as `productos/[id]`.
+- `/vendor/**` and `/admin/**` pages each have the shape `static heading → <Suspense fallback={Skeleton}> → <Inner/>`, where `Inner` calls `requireRole` and then loads data. This is the same pattern as `productos/[id]`.
 - Pages with `[id]` read `params` inside the same inner component, so there's no top-level `await params`.
 - Search pages (`/admin/vendedores?q=`) read `searchParams` inside the inner component.
 - The header `AccountLink` is the only session read on public pages, and it's behind its own boundary, so the store pages keep their static shell.
@@ -332,12 +332,12 @@ Bound arguments (`updateProduct.bind(null, id)`) can be changed by the client, s
 - ✅ `npm run create-admin` creates an admin. Running it again is a no-op. Seed creates a working seller login. `tsc` and lint pass.
 
 **Phase 2 — Sign in / out**
-- `/ingresar` form + actions, `proxy.ts`, `AccountLink` in the header, `DashboardShell` with "Salir", empty `/panel` and `/admin` landing pages.
-- ✅ Seller and admin each land on their own panel. A wrong password shows the generic error. A banned user sees the "desactivada" message. Opening `/panel/productos` signed out → `/ingresar?next=/panel/productos`, and after login you're back there. A seller opening `/admin` → `/panel`. `?next=//evil.com` is ignored.
+- `/auth/login` form + actions, `proxy.ts`, `AccountLink` in the header, `DashboardShell` with "Salir", empty `/vendor` and `/admin` landing pages.
+- ✅ Seller and admin each land on their own panel. A wrong password shows the generic error. A banned user sees the "desactivada" message. Opening `/vendor/productos` signed out → `/auth/login?next=/vendor/productos`, and after login you're back there. A seller opening `/admin` → `/vendor`. `?next=//evil.com` is ignored.
 
 **Phase 3 — Seller products**
 - List, create, edit, `ProductForm` wiring, change password.
-- ✅ A seller can create a product, which then shows on the home page with farm name, category and badges. They can edit it. Invalid input shows Spanish field errors from the server even with JavaScript disabled. Seller A opening seller B's `/panel/productos/[id]` gets a 404. A tampered bound ID can't update another seller's product.
+- ✅ A seller can create a product, which then shows on the home page with farm name, category and badges. They can edit it. Invalid input shows Spanish field errors from the server even with JavaScript disabled. Seller A opening seller B's `/vendor/productos/[id]` gets a 404. A tampered bound ID can't update another seller's product.
 
 **Phase 4 — Admin sellers**
 - List with search, create, edit, set password, deactivate/reactivate.
@@ -365,10 +365,10 @@ Approved (Q5): add **Vitest** with unit tests for the Zod schemas (price parsing
 
 | # | Question | Decision |
 |---|---|---|
-| Q1 | Seller panel URL | **`/panel`** |
+| Q1 | Seller panel URL | **`/vendor`** |
 | Q2 | Can admins edit any seller's products? | **No.** Admins manage sellers only. |
 | Q3 | Reset the local DB for the schema change? | **Yes** |
-| Q4 | What `/registro` shows | **Message + contact details as placeholders** (WhatsApp, phone, email, hours) in `src/lib/site-config.ts`; real values added later |
+| Q4 | What `/auth/registrar` shows | **Message + contact details as placeholders** (WhatsApp, phone, email, hours) in `src/lib/site-config.ts`; real values added later |
 | Q5 | Add Vitest? | **Yes**: schemas, `safeNext`, role checks |
 | Q6 | Empty stock = unlimited? | **No.** Stock defaults to **0**; "unlimited" is a **per-product option** (`unlimited_stock`, D11) |
 | Q7 | Separate farm name from contact name? | **Yes** |

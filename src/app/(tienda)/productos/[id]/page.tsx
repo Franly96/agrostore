@@ -3,9 +3,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Badge, PriceTag, centsToPesos } from "@/components/agrostore";
+import { AddToCartPanel } from "@/components/add-to-cart";
+import { Badge, Button, PriceTag, centsToPesos } from "@/components/agrostore";
 import { Leaf } from "@/components/agrostore/leaf";
 import { db } from "@/src/db";
+import { MAX_LINE_QTY } from "@/src/lib/cart";
 import { products, users } from "@/src/db/schema";
 import { activeSeller, isSoldOut, sellerDisplayName } from "@/src/lib/data/store";
 
@@ -17,7 +19,7 @@ export default function Page({ params }: PageProps<"/productos/[id]">) {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 md:px-6">
       <Link
-        href="/"
+        href="/productos"
         className="rounded-sm text-body-sm font-semibold text-green-600 hover:text-green-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
       >
         ← Volver a productos
@@ -99,6 +101,16 @@ async function ProductDetail({
         {product.description ? (
           <p className="text-body text-ink">{product.description}</p>
         ) : null}
+        {soldOut ? (
+          <Button variant="secondary" disabled className="min-h-11 self-start">
+            Agotado
+          </Button>
+        ) : (
+          <AddToCartPanel
+            productId={productId}
+            max={product.unlimitedStock ? MAX_LINE_QTY : product.stock}
+          />
+        )}
         <p className="text-body-sm text-ink-muted">
           Vendido por{" "}
           <Link

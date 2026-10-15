@@ -4,5 +4,5 @@ import { AccountPage } from "@/components/account-page";
 export const metadata: Metadata = { title: "Mi cuenta" };
 
 export default function Page() {
-  return <AccountPage role="seller" path="/panel/cuenta" />;
+  return <AccountPage role="seller" path="/vendor/cuenta" />;
 }

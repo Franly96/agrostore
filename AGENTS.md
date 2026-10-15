@@ -14,19 +14,20 @@ Online store for agricultural products in the Dominican Republic. See `README.md
 
 ## Current state
 
-- `/` (`src/app/(tienda)/page.tsx`) lists products from Postgres; each card links to `/productos/[id]`. Sellers and admins sign in at `/ingresar` (Better Auth). Sellers manage their own products in `/panel`; admins manage sellers in `/admin`. Design and decisions: `specs/001-auth-and-roles.md`. Cart, orders, catalog search and image upload are not built yet.
-- Schema: `users` (also Better Auth's user table), Better Auth tables and `products` in `src/db/schema.ts`. There are no migration files; the schema is applied with `npx drizzle-kit push`.
+- `/` (`src/app/(tienda)/page.tsx`) is a static GOLDVEG presentation. `/productos` lists in-stock products from Postgres grouped by category, filtered by name and category chips and paginated; each card links to `/productos/[id]`. Sellers and admins sign in at `/auth/login` (Better Auth). Sellers manage their own products in `/vendor`; admins manage sellers in `/admin`. Design and decisions: `specs/001-auth-and-roles.md`. The cart icon on cards (adds 1 per click) and "Agregar al carrito" on the product page save `[{productId, qty}]` in localStorage (`src/lib/cart.ts`, `src/lib/cart-store.ts`, key `agrostore.cart`; no prices); the header cart link shows the product count and `/carrito` (`components/cart-view.tsx`) lists them, fetching current name, price and stock from `GET /api/cart?ids=…`. Checkout, orders and image upload are not built yet.
+- Schema: `users` (also Better Auth's user table), Better Auth tables and `products` in `src/db/schema.ts`. Changes ship as versioned SQL migrations in `drizzle/` (`npm run db:generate`, then `npm run db:migrate`). CI fails if the schema changes without a migration. Deploys: `docs/DEPLOY.md`.
 - Local DB: `docker compose up -d` (Postgres 17, `postgres://agro:agro@localhost:5432/agrostore`). `DATABASE_URL` lives in `.env`, which is gitignored.
 
 ## Rules for this codebase
 
-- Routes use Spanish URL segments. Storefront pages go in `src/app/(tienda)/`, auth pages in `src/app/(auth)/`, seller pages in `src/app/panel/`, admin pages in `src/app/admin/`. Keep a single root layout (`src/app/layout.tsx`).
+- Routes use Spanish URL segments, except the fixed area prefixes. Storefront pages go in `src/app/(tienda)/`; seller pages start with `/vendor` (`src/app/vendor/`); admin pages start with `/admin` (`src/app/admin/`); auth pages live under `/auth/*` (`src/app/auth/`): `/auth/login`, `/auth/registrar`, `/auth/recuperar-contrasena`, etc. New seller, admin or auth routes go under their prefix. Keep a single root layout (`src/app/layout.tsx`).
 - Every page sets `export const metadata = { title: "..." }`; the root layout appends `· AgroStore`.
 - Dynamic segments (`[id]`) have no `generateStaticParams`, so `params` is runtime data. Don't `await params` at the top of a page or layout; read it inside a `<Suspense>` boundary (see `src/app/(tienda)/productos/[id]/page.tsx`).
 - Navigation links live in `components/site-header.tsx`.
 
 - **Cache Components is enabled.** Never `await` uncached data (DB queries, `fetch`, `connection()`) at the top level of a page or layout. Put the read in its own async server component and wrap it in `<Suspense>` with a fallback shaped like the real content (see `components/ui/product-list.tsx`), or cache it with `"use cache"` when it doesn't need to be fresh. Keep boundaries low so the static shell keeps real content. Fallbacks must be deterministic (no `Math.random()` / `Date.now()`).
 - Don't use `export const dynamic = ...`. That route segment config doesn't apply with Cache Components.
+- **Every list is paginated and filtered on the server**, driven by the URL (`?q=`, `?categoria=`, `?pagina=`). Inside the Suspense'd component: read params with `readParam` / `parsePage` (`src/lib/list-query.ts`), `count` first, then `paginate()` and query with `limit`/`offset` and a stable `orderBy` that ends in the id. Render `<Pagination>` (`components/pagination.tsx`) with the other filters in `params`. Page sizes: `CATALOG_PAGE_SIZE` (12, store grid) and `LIST_PAGE_SIZE` (10, panel tables). Any new list (orders, history…) follows this; never fetch a whole table.
 - Money is integer DOP centavos (`priceCents`). Display with `PriceTag` / `formatRD(centsToPesos(cents))` ("RD$ 1,200"). Form input is pesos; convert with `Math.round(pesos * 100)` (`toProductRow`). Never store floats.
 - User-facing text is Spanish (`<html lang="es">`).
 - Query the database only from server code (server components, server actions, route handlers) through `db` from `src/db`.
@@ -42,6 +43,7 @@ Online store for agricultural products in the Dominican Republic. See `README.md
 - One primary button per screen or card; button labels are short Spanish verbs. Green is ~10–15% of a screen; mango only for "Oferta".
 - Prices: pass pesos to `PriceTag` / `formatRD` (`centsToPesos(priceCents)`); they render "RD$ 1,200" (no decimals for whole amounts).
 - Focus: every interactive element shows a 2px `green-600` outline with 2px offset.
+- Icons: use `lucide-react` (already installed; it is shadcn's `iconLibrary`), e.g. `import { ShoppingCart } from "lucide-react"`. Icons take their colour from the surrounding text (`currentColor`), so colour them with the token text classes, never raw hex. Decorative icons get `aria-hidden="true"`. An icon-only link or button needs an `aria-label` (Spanish) and a 44px tap target (`min-h-11 min-w-11`); see `CartLink` in `components/site-header.tsx`.
 - `components/agrostore/agrostore.css` mirrors the design system's own stylesheet; change it there only to stay in sync with the design system. The design system is light-only; the `.dark` block in `globals.css` is unused shadcn boilerplate.
 
 ## Responsive design (required for every change)
@@ -66,13 +68,19 @@ Online store for agricultural products in the Dominican Republic. See `README.md
 - `src/lib/auth.ts` is server-only. Scripts (`seed`, `create-admin`) use `createScriptAuth()` from `src/lib/auth-options.ts`.
 - Public store queries must keep the `activeSeller` filter (`src/lib/data/store.ts`) so deactivated sellers' products stay hidden.
 
+## Database migrations (required for every schema change)
+
+- Edit `src/db/schema.ts`, run `npm run db:generate`, review the SQL, commit schema + `drizzle/` together. Don't use `drizzle-kit push` against shared databases, and never edit a migration that already ran in production.
+- Migrations run before the new code is live, so each must work with the previous release: new columns nullable or with defaults; renames and drops in two releases.
+- `src/db/index.ts` uses `pg` with `attachDatabasePool` for Vercel. Don't switch drivers or create extra pools.
+
 ## Seed data
 
 `npm run seed` is safe to re-run: it creates the sample seller (`finca@example.com`, password `agro-seller-dev` or `SEED_SELLER_PASSWORD`) if missing and only inserts products if that seller has none. To wipe the database entirely, run `docker compose down -v`.
 
 ## Verifying changes
 
-Run `npm run dev`, open http://localhost:3000, check the Next.js dev overlay for Insights/errors, and look at changed pages at 375px, 768px and 1280px wide. Then run `npm run lint`, `npx tsc --noEmit` and `npm test`. For auth changes, also check as signed out, as a seller and as an admin.
+Run `npm run dev`, open http://localhost:3000, check the Next.js dev overlay for Insights/errors, and look at changed pages at 375px, 768px and 1280px wide. Then run `npm run typecheck`, `npm run lint`, `npm test` and `npm run db:check` (the same checks CI runs). For auth changes, also check as signed out, as a seller and as an admin.
 
 <!-- BEGIN:nextjs-agent-feedback -->
 

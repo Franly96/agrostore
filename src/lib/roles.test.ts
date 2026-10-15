@@ -4,20 +4,20 @@ import { safeNext } from "./roles";
 
 describe("safeNext", () => {
   it("allows paths inside the role's own area", () => {
-    expect(safeNext("/panel/productos/3", "seller")).toBe("/panel/productos/3");
+    expect(safeNext("/vendor/productos/3", "seller")).toBe("/vendor/productos/3");
     expect(safeNext("/admin/vendedores?q=ana", "admin")).toBe("/admin/vendedores?q=ana");
   });
 
   it.each([
     ["//evil.com", "seller"],
-    ["https://evil.com/panel", "seller"],
+    ["https://evil.com/vendor", "seller"],
     ["/\\evil.com", "seller"],
     ["/admin/vendedores", "seller"],
-    ["/panel/productos", "admin"],
+    ["/vendor/productos", "admin"],
     ["/panelx", "seller"],
     [undefined, "seller"],
   ] as const)("sends %j for a %s to their home", (next, role) => {
-    expect(safeNext(next, role)).toBe(role === "admin" ? "/admin/vendedores" : "/panel/productos");
+    expect(safeNext(next, role)).toBe(role === "admin" ? "/admin/vendedores" : "/vendor/productos");
   });
 });
 

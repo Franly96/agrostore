@@ -1,4 +1,4 @@
-// Contact details shown on /registro and the login page.
+// Contact details shown on /auth/registrar and the login page.
 // PLACEHOLDERS: replace every value below with the real contact details.
 export const siteConfig = {
   name: "Agrostore",

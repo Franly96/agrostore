@@ -31,12 +31,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
 /**
  * Authorization gate for pages and server actions. Call it first.
- * Signed out → /ingresar (with `next`), wrong role → that role's home.
+ * Signed out → /auth/login (with `next`), wrong role → that role's home.
  */
 export async function requireRole(role: Role, from?: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) {
-    redirect(from ? `/ingresar?next=${encodeURIComponent(from)}` : "/ingresar");
+    redirect(from ? `/auth/login?next=${encodeURIComponent(from)}` : "/auth/login");
   }
   if (user.role !== role) redirect(ROLE_HOME[user.role]);
   return user;

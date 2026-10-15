@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { Badge, ButtonLink, SearchBar } from "@/components/agrostore";
 import { FormAlert } from "@/components/form-alert";
 import { requireRole } from "@/src/lib/dal";
-import { listVendors } from "@/src/lib/data/vendors";
+import { Pagination } from "@/components/pagination";
+import { LIST_PAGE_SIZE, paginate, parsePage, readParam } from "@/src/lib/list-query";
+import { countVendors, listVendors } from "@/src/lib/data/vendors";
 import { formatDrPhone } from "@/src/lib/validation/vendor";
 
 export const metadata: Metadata = { title: "Vendedores" };
@@ -33,9 +35,12 @@ async function Vendors({
   searchParams: PageProps<"/admin/vendedores">["searchParams"];
 }) {
   await requireRole("admin", "/admin/vendedores");
-  const { q, ok } = await searchParams;
-  const query = typeof q === "string" ? q.slice(0, 80) : "";
-  const vendors = await listVendors(query);
+  const params = await searchParams;
+  const { ok } = params;
+  const query = readParam(params.q);
+  const total = await countVendors(query);
+  const pagination = paginate(total, parsePage(params.pagina), LIST_PAGE_SIZE);
+  const vendors = total > 0 ? await listVendors(query, pagination) : [];
 
   return (
     <>
@@ -118,6 +123,12 @@ async function Vendors({
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={pagination.page}
+            pages={pagination.pages}
+            path="/admin/vendedores"
+            params={{ q: query }}
+          />
         </>
       )}
     </>

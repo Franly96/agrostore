@@ -16,7 +16,7 @@ const vendorColumns = {
   createdAt: users.createdAt,
 };
 
-export function listVendors(query?: string) {
+function vendorFilter(query?: string) {
   const q = query?.trim();
   const search = q
     ? or(
@@ -25,14 +25,28 @@ export function listVendors(query?: string) {
         ilike(users.email, `%${q}%`),
       )
     : undefined;
+  return and(eq(users.role, "seller"), search);
+}
 
+export async function countVendors(query?: string) {
+  const [row] = await db.select({ total: count() }).from(users).where(vendorFilter(query));
+  return row?.total ?? 0;
+}
+
+/** One page of sellers matching `query`, ordered by farm name. */
+export function listVendors(
+  query: string | undefined,
+  { offset, limit }: { offset: number; limit: number },
+) {
   return db
     .select({ ...vendorColumns, productCount: count(products.id) })
     .from(users)
     .leftJoin(products, eq(products.sellerId, users.id))
-    .where(and(eq(users.role, "seller"), search))
+    .where(vendorFilter(query))
     .groupBy(users.id)
-    .orderBy(asc(sql`coalesce(${users.farmName}, ${users.name})`));
+    .orderBy(asc(sql`coalesce(${users.farmName}, ${users.name})`), asc(users.id))
+    .limit(limit)
+    .offset(offset);
 }
 
 /** A seller by id; null for unknown ids and for non-seller accounts (admins). */

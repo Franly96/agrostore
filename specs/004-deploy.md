@@ -114,7 +114,7 @@ Branch protection on `main`: these checks must pass, plus one review if more tha
 - [ ] Preview deployments protected (§3).
 - [ ] Cron routes check `CRON_SECRET`.
 - [ ] `npm audit` reviewed before launch; Dependabot (or Renovate) enabled on GitHub.
-- [ ] Vercel Firewall: enable the managed bot protection and a rate-limit rule on `/ingresar` and `/pagar` as a second layer behind the app's own throttling.
+- [ ] Vercel Firewall: enable the managed bot protection and a rate-limit rule on `/auth/login` and `/pagar` as a second layer behind the app's own throttling.
 
 ---
 
@@ -178,6 +178,16 @@ Expected total: **$0 until public launch**, then **about $20–40/month** plus t
 - ✅ Every checklist item ticked; a real order placed and cancelled on production from a phone.
 
 ---
+
+## 10a. Implementation notes (2026-10-15)
+
+What was built for stage B differs from the plan above in three places:
+
+- **Migrations run in GitHub Actions, not in the Vercel build command.** The workflow migrates Neon and then calls `vercel deploy` (Vercel still does the build, so it has all environment variables). This gives one clear gate: checks → migrate → deploy.
+- **Neon is set up directly at neon.com** (free plan) instead of through the Vercel Marketplace, with one shared `preview` branch for all PRs instead of a branch per preview. That's simpler on free tiers. Per-preview branches can come back with the Marketplace integration or Neon's GitHub Action.
+- **Deployment Protection "All Deployments" with Vercel Authentication** keeps production private during the beta; it's free on Hobby.
+
+Runbook: `docs/DEPLOY.md`. Workflow: `.github/workflows/ci-cd.yml`.
 
 ## 11. Review decisions (2026-10-14)
 

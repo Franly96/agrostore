@@ -12,7 +12,7 @@ type State = ActionState<ChangePasswordField>;
 
 export async function changePassword(_prev: State, formData: FormData): Promise<State> {
   const user = await getCurrentUser();
-  if (!user) redirect("/ingresar");
+  if (!user) redirect("/auth/login");
 
   const parsed = changePasswordSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { status: "error", fieldErrors: fieldErrorsFrom(parsed.error) };

@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { Badge, ButtonLink, PriceTag, centsToPesos } from "@/components/agrostore";
 import { FormAlert } from "@/components/form-alert";
 import { requireRole } from "@/src/lib/dal";
-import { listSellerProducts } from "@/src/lib/data/products";
+import { Pagination } from "@/components/pagination";
+import { countSellerProducts, listSellerProducts } from "@/src/lib/data/products";
+import { LIST_PAGE_SIZE, paginate, parsePage } from "@/src/lib/list-query";
 
 export const metadata: Metadata = { title: "Mis productos" };
 
@@ -13,12 +15,12 @@ const OK_MESSAGES: Record<string, string> = {
   guardado: "Cambios guardados.",
 };
 
-export default function Page({ searchParams }: PageProps<"/panel/productos">) {
+export default function Page({ searchParams }: PageProps<"/vendor/productos">) {
   return (
     <main className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-heading text-ink">Mis productos</h1>
-        <ButtonLink href="/panel/productos/nuevo">Publicar producto</ButtonLink>
+        <ButtonLink href="/vendor/productos/nuevo">Publicar producto</ButtonLink>
       </div>
       <Suspense fallback={<ListSkeleton />}>
         <SellerProducts searchParams={searchParams} />
@@ -42,11 +44,14 @@ function Availability({ item }: { item: Item }) {
 async function SellerProducts({
   searchParams,
 }: {
-  searchParams: PageProps<"/panel/productos">["searchParams"];
+  searchParams: PageProps<"/vendor/productos">["searchParams"];
 }) {
-  const user = await requireRole("seller", "/panel/productos");
-  const [{ ok }, items] = await Promise.all([searchParams, listSellerProducts(user.id)]);
-  const okMessage = typeof ok === "string" ? OK_MESSAGES[ok] : undefined;
+  const user = await requireRole("seller", "/vendor/productos");
+  const params = await searchParams;
+  const okMessage = typeof params.ok === "string" ? OK_MESSAGES[params.ok] : undefined;
+  const total = await countSellerProducts(user.id);
+  const pagination = paginate(total, parsePage(params.pagina), LIST_PAGE_SIZE);
+  const items = total > 0 ? await listSellerProducts(user.id, pagination) : [];
 
   return (
     <>
@@ -64,7 +69,7 @@ async function SellerProducts({
             {items.map((item) => (
               <li key={item.id}>
                 <Link
-                  href={`/panel/productos/${item.id}`}
+                  href={`/vendor/productos/${item.id}`}
                   className="flex flex-col gap-1 rounded-md border border-line bg-surface p-4 hover:border-ink-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                 >
                   <span className="flex items-start justify-between gap-2">
@@ -110,7 +115,7 @@ async function SellerProducts({
                       <Availability item={item} />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <ButtonLink href={`/panel/productos/${item.id}`} variant="ghost" size="sm">
+                      <ButtonLink href={`/vendor/productos/${item.id}`} variant="ghost" size="sm">
                         Editar
                       </ButtonLink>
                     </td>
@@ -119,6 +124,7 @@ async function SellerProducts({
               </tbody>
             </table>
           </div>
+          <Pagination page={pagination.page} pages={pagination.pages} path="/vendor/productos" />
         </>
       )}
     </>

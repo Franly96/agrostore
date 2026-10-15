@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { cx } from "./format";
 
 type ChipValue = string | null | string[];
 
 export type CategoryChipsProps = {
-  options: { value: string; label: string; count?: number }[];
+  /** An option with `href` renders as a link (URL-driven filters, works without JavaScript). */
+  options: { value: string; label: string; count?: number; href?: string }[];
   /** A single value (or null), or an array with `multiple`. */
   value?: ChipValue;
   defaultValue?: ChipValue;
@@ -61,16 +63,30 @@ export function CategoryChips({
     >
       {options.map((o) => {
         const on = isOn(o.value);
+        const content = (
+          <>
+            {o.label}
+            {o.count != null ? <span className="ag-chip-count">{o.count}</span> : null}
+          </>
+        );
+        // min-h-11: 44px tap target.
+        const className = cx("ag-chip min-h-11", on && "ag-chip-on");
+        if (o.href) {
+          return (
+            <Link key={o.value} href={o.href} className={className} aria-current={on ? "true" : undefined}>
+              {content}
+            </Link>
+          );
+        }
         return (
           <button
             key={o.value}
             type="button"
-            className={cx("ag-chip", on && "ag-chip-on")}
+            className={className}
             aria-pressed={on}
             onClick={() => toggle(o.value)}
           >
-            {o.label}
-            {o.count != null ? <span className="ag-chip-count">{o.count}</span> : null}
+            {content}
           </button>
         );
       })}

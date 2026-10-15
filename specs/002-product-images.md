@@ -11,7 +11,7 @@
 
 ## 1. Goals
 
-1. A seller can add, reorder and remove up to **5 photos** per product from `/panel/productos/nuevo` and `/panel/productos/[id]`.
+1. A seller can add, reorder and remove up to **5 photos** per product from `/vendor/productos/nuevo` and `/vendor/productos/[id]`.
 2. Photos upload from a phone over a weak connection without failing. Most sellers list from the field.
 3. The home grid and product detail show the photos, sized for each screen. The detail page has a swipeable gallery.
 4. Only the owning seller can attach photos to their products. Nobody can upload without being signed in as a seller.
@@ -108,7 +108,7 @@ Seller presses "Guardar" ──► server action (createProduct / updateProduct)
 |---|---|
 | Home grid (`ProductCard`) | Cover photo, 4:3, `sizes="(min-width:1024px) 240px, (min-width:768px) 33vw, 50vw"`. The leaf placeholder stays for products without photos. |
 | Product detail | Gallery: main 4:3 image plus thumbnails. On phones it's a horizontal scroll-snap strip with dots ("Foto 2 de 4"). From `md:`, thumbnails sit under the main image. The cover gets `priority` (it's the LCP element). |
-| Seller list (`/panel/productos`) | 48px cover thumbnail on each row/card |
+| Seller list (`/vendor/productos`) | 48px cover thumbnail on each row/card |
 | Cart (spec 003) | 72px thumbnail in `CartItem` |
 
 - `ProductCard` and `CartItem` (design system) gain an optional `image` slot (ReactNode), so the app passes a `next/image` element while the components stay framework-free. Their existing `imageSrc` keeps working.

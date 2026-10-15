@@ -4,7 +4,7 @@ import { signOut } from "@/src/lib/auth-actions";
 import { type DashboardLink, navItemClass } from "./dashboard-links";
 import { DashboardNav, DashboardNavList } from "./dashboard-nav";
 
-/** Shared layout for /panel and /admin: swipeable section row on phones, sidebar from md. */
+/** Shared layout for /vendor and /admin: swipeable section row on phones, sidebar from md. */
 export function DashboardShell({
   title,
   links,

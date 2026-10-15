@@ -27,7 +27,7 @@ async function main() {
   }
 
   await createScriptAuth().api.createUser({ body: { email, name, password, role: "admin" } });
-  console.log(`Admin ${email} created. Sign in at /ingresar.`);
+  console.log(`Admin ${email} created. Sign in at /auth/login.`);
   process.exit(0);
 }
 main();

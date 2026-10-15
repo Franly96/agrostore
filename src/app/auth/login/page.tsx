@@ -8,7 +8,7 @@ import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Ingresar" };
 
-export default function Page({ searchParams }: PageProps<"/ingresar">) {
+export default function Page({ searchParams }: PageProps<"/auth/login">) {
   return (
     <main>
       <h1 className="text-heading text-ink">Ingresar</h1>
@@ -30,7 +30,7 @@ export default function Page({ searchParams }: PageProps<"/ingresar">) {
   );
 }
 
-async function LoginGate({ searchParams }: { searchParams: PageProps<"/ingresar">["searchParams"] }) {
+async function LoginGate({ searchParams }: { searchParams: PageProps<"/auth/login">["searchParams"] }) {
   const user = await getCurrentUser();
   if (user) redirect(ROLE_HOME[user.role]);
   const { next } = await searchParams;

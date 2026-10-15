@@ -31,7 +31,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { createProduct, updateProduct } = await import("@/src/app/panel/productos/actions");
+const { createProduct, updateProduct } = await import("@/src/app/vendor/productos/actions");
 const { createVendor, updateVendor, setVendorPassword, setVendorActive } = await import(
   "@/src/app/admin/vendedores/actions"
 );
@@ -69,7 +69,7 @@ describe("seller product actions", () => {
 
   it("writes for a seller and redirects", async () => {
     calls.signedInAs = "seller";
-    await expect(createProduct(idle, productForm())).rejects.toThrow("REDIRECT:/panel/productos?ok=creado");
+    await expect(createProduct(idle, productForm())).rejects.toThrow("REDIRECT:/vendor/productos?ok=creado");
     expect(calls.dataWrites).toBe(1);
   });
 });

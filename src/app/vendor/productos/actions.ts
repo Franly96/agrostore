@@ -23,7 +23,7 @@ export async function createProduct(_prev: State, formData: FormData): Promise<S
     console.error("createProduct failed", error);
     return FAILED;
   }
-  redirect("/panel/productos?ok=creado");
+  redirect("/vendor/productos?ok=creado");
 }
 
 export async function updateProduct(
@@ -47,5 +47,5 @@ export async function updateProduct(
     return FAILED;
   }
   if (!updated) notFound();
-  redirect("/panel/productos?ok=guardado");
+  redirect("/vendor/productos?ok=guardado");
 }

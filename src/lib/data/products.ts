@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/src/db";
 import { products } from "@/src/db/schema";
 import type { toProductRow } from "@/src/lib/validation/product";
@@ -23,12 +23,23 @@ const sellerProductColumns = {
   updatedAt: products.updatedAt,
 };
 
-export function listSellerProducts(sellerId: number) {
+export async function countSellerProducts(sellerId: number) {
+  const [row] = await db
+    .select({ total: count() })
+    .from(products)
+    .where(eq(products.sellerId, sellerId));
+  return row?.total ?? 0;
+}
+
+/** One page of the seller's products, most recently updated first. */
+export function listSellerProducts(sellerId: number, { offset, limit }: { offset: number; limit: number }) {
   return db
     .select(sellerProductColumns)
     .from(products)
     .where(eq(products.sellerId, sellerId))
-    .orderBy(desc(products.updatedAt));
+    .orderBy(desc(products.updatedAt), desc(products.id))
+    .limit(limit)
+    .offset(offset);
 }
 
 export async function getSellerProduct(sellerId: number, productId: number) {

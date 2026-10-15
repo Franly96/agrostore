@@ -7,11 +7,11 @@ export function proxy(request: NextRequest) {
   if (getSessionCookie(request)) return NextResponse.next();
 
   const { pathname, search } = request.nextUrl;
-  const url = new URL("/ingresar", request.url);
+  const url = new URL("/auth/login", request.url);
   url.searchParams.set("next", pathname + search);
   return NextResponse.redirect(url);
 }
 
 export const config = {
-  matcher: ["/panel/:path*", "/admin/:path*"],
+  matcher: ["/vendor/:path*", "/admin/:path*"],
 };

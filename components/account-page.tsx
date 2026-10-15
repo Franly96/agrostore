@@ -7,7 +7,7 @@ import { requireRole } from "@/src/lib/dal";
 import type { Role } from "@/src/db/schema";
 import { formatDrPhone } from "@/src/lib/validation/vendor";
 
-/** /panel/cuenta and /admin/cuenta: read-only profile + change password. */
+/** /vendor/cuenta and /admin/cuenta: read-only profile + change password. */
 export function AccountPage({ role, path }: { role: Role; path: string }) {
   return (
     <main className="flex flex-col gap-6">

@@ -19,6 +19,6 @@ export default function Page() {
 }
 
 async function NewProduct() {
-  await requireRole("seller", "/panel/productos/nuevo");
+  await requireRole("seller", "/vendor/productos/nuevo");
   return <ProductEditor action={createProduct} submitLabel="Publicar producto" />;
 }

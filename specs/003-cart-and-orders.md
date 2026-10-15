@@ -7,6 +7,8 @@
 | Scope | Buyers add products to a cart and place orders without an account; sellers and admins manage those orders. Card payments are outlined for a later phase. |
 | Depends on | Spec 001 (roles, `requireRole`, throttle), spec 002 (thumbnails; optional) |
 
+> **Interim step (2026-10-14), by request:** until `/carrito` exists, "Agregar" on cards and the product page stores `[{productId, qty}]` in `localStorage` (`agrostore.cart`; `src/lib/cart.ts`, `src/lib/cart-store.ts`) and the header shows the number of distinct products. `/carrito` already lists those products (grouped by seller, with quantity changes, removal and a total) by asking `GET /api/cart?ids=…` for their current data. This is a stopgap for Phase 1: D2 (cookie plus server actions) replaces it when the cart page is built, and that work should read the old localStorage key once to migrate existing carts. Same limits as D2: 30 lines, quantity capped at stock and 999.
+
 ---
 
 ## 1. Goals
@@ -16,7 +18,7 @@
 3. **Delivery fees are calculated in the app**: each seller sets a fee per province they deliver to, and checkout adds the right fee to each seller's order.
 4. A cart with products from several farms becomes **one order per seller**, because each seller delivers separately.
 5. Stock is reserved when an order is placed and returned if it's cancelled. No overselling, even with two buyers at the same moment.
-6. Sellers see and update **their** orders in `/panel/pedidos`. Admins see all orders in `/admin/pedidos`.
+6. Sellers see and update **their** orders in `/vendor/pedidos`. Admins see all orders in `/admin/pedidos`.
 7. Buyers can follow their order's status through a private link, and see "Mis pedidos" on the device they ordered from.
 
 ### Non-goals (this spec)
@@ -116,7 +118,7 @@ Indexes: `orders(seller_id, status, created_at desc)`, `orders(checkout_id)`, `o
 
 ## 3a. Delivery fees
 
-- **Seller setup** (`/panel/entregas`): the seller picks the provinces they deliver to and the fee for each. Shortcuts: "Mismo precio para todas" and "Agregar provincias vecinas". Optional free-delivery amount ("Envío gratis desde RD$ …"). Until a seller has at least one zone, their products show "Este vendedor aún no ha configurado sus entregas" and can't be added to the cart.
+- **Seller setup** (`/vendor/entregas`): the seller picks the provinces they deliver to and the fee for each. Shortcuts: "Mismo precio para todas" and "Agregar provincias vecinas". Optional free-delivery amount ("Envío gratis desde RD$ …"). Until a seller has at least one zone, their products show "Este vendedor aún no ha configurado sus entregas" and can't be added to the cart.
 - **Buyer province**: the cart has a province `Select` (remembered in the `cart` cookie). It's prefilled into `/pagar`, where changing it recalculates the fees.
 - **Calculation** (`src/lib/orders/delivery.ts`, pure function, unit-tested): for each seller in the cart, the fee is
   - not available: the seller doesn't deliver to that province;
@@ -155,15 +157,15 @@ All screens use the design system (`CartItem`, `QuantityStepper`, `PriceTag`, `B
 | Home grid / `/productos/[id]` | public | "Agregar al carrito" (card button; `QuantityStepper` + button on the detail page). Sold-out products show "Agotado". Adding shows a confirmation with "Ver carrito". |
 | `/carrito` | public | Province selector; items **grouped by seller** (`CartItem` with stepper and "Eliminar"); subtotal, delivery fee and total per seller; grand total. Lines whose product is now sold out or gone are flagged. "Continuar" → `/pagar`. Empty state with "Ver productos". |
 | `/pagar` | public | Contact and delivery form (name, WhatsApp, province, address, reference, notes), payment method (contra entrega / transferencia), and a summary per seller with subtotal, delivery fee and total, then the grand total. "Confirmar pedido" is disabled while any seller doesn't deliver to the chosen province. |
-| `/panel/entregas` | seller | Delivery zones and fees per province; free-delivery amount (§3a) |
+| `/vendor/entregas` | seller | Delivery zones and fees per province; free-delivery amount (§3a) |
 | `/pedidos/[code]?t=…` | anyone with the link | Thanks message, per-seller status timeline, items, totals, "Enviar pedido a {finca}" WhatsApp buttons, and "Cancelar pedido" while `nuevo`. A wrong or missing token → 404. |
 | `/pedidos` | public | "Mis pedidos en este dispositivo" (from the httpOnly cookie, most recent first) and how to find an order ("Usa el enlace que guardaste o escribe a la finca"). |
-| `/panel/pedidos` | seller | Own orders. Filter chips: Nuevos (count) / En curso / Entregados / Cancelados. Cards on phone, table from `md:`. |
-| `/panel/pedidos/[id]` | seller (owner) | Buyer contact and address, items, status actions (one primary per step), "Marcar como pagado", cancel with reason, "Escribir al comprador" WhatsApp link |
+| `/vendor/pedidos` | seller | Own orders. Filter chips: Nuevos (count) / En curso / Entregados / Cancelados. Cards on phone, table from `md:`. |
+| `/vendor/pedidos/[id]` | seller (owner) | Buyer contact and address, items, status actions (one primary per step), "Marcar como pagado", cancel with reason, "Escribir al comprador" WhatsApp link |
 | `/admin/pedidos` | admin | All orders, filterable by status and seller, searchable by code |
 | `/admin/pedidos/[id]` | admin | Read-only detail plus "Cancelar" with reason |
 
-Header: "Carrito" gets a count badge (`<Suspense>`). The buyer "Cuenta" link is removed, since buyers have no accounts; "Mis pedidos" stays. The seller panel nav gets "Pedidos" with a count of `nuevo` orders.
+Header: the cart link is a `ShoppingCart` icon (since 2026-10-14, `aria-label="Carrito"`) and gets a count badge (`<Suspense>`). The header's "Cuenta" and "Mis pedidos" links were removed on 2026-10-14 (the `/cuenta` and `/pedidos` pages still exist as placeholders); whether "Mis pedidos" returns to the nav is decided when this spec is implemented. The buyer "Cuenta" link stays out regardless, since buyers have no accounts. The seller panel nav gets "Pedidos" with a count of `nuevo` orders.
 
 ---
 
@@ -203,7 +205,7 @@ Same contract as spec 001: `ActionState`, Zod schemas in `src/lib/validation/`, 
 - ✅ Works with JavaScript disabled. Quantities can't exceed stock. A sold-out or removed product is flagged in the cart. Phone / tablet / desktop layouts are checked.
 
 **Phase 1b — Delivery zones**
-- `seller_delivery_zones`, `free_delivery_over_cents`, `/panel/entregas`, the delivery calculation, the province selector in the cart, fees shown on the product page and in the cart.
+- `seller_delivery_zones`, `free_delivery_over_cents`, `/vendor/entregas`, the delivery calculation, the province selector in the cart, fees shown on the product page and in the cart.
 - ✅ A seller sets fees for 3 provinces and a free-delivery amount. The cart shows the right fee per seller for the chosen province, shows 0 above the threshold, and blocks a province the seller doesn't serve. Sellers without zones can't receive cart adds.
 
 **Phase 2 — Checkout and order creation**
@@ -211,7 +213,7 @@ Same contract as spec 001: `ActionState`, Zod schemas in `src/lib/validation/`, 
 - ✅ A two-farm cart produces 2 orders under one code, each with its own delivery fee and total. Two parallel checkouts for the last unit: one succeeds, the other gets "Solo quedan 0". A price change between viewing and submitting is caught. The order link without the token is a 404.
 
 **Phase 3 — Seller order management**
-- `/panel/pedidos` list and detail, transitions, mark paid, cancel with stock return, nav badge.
+- `/vendor/pedidos` list and detail, transitions, mark paid, cancel with stock return, nav badge.
 - ✅ A seller can't open or change another seller's order (404). Invalid transitions are rejected. Cancelling returns stock exactly once.
 
 **Phase 4 — Admin orders**

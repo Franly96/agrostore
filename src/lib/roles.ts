@@ -2,10 +2,10 @@ import type { Role } from "@/src/db/schema";
 
 export const ROLE_HOME: Record<Role, string> = {
   admin: "/admin/vendedores",
-  seller: "/panel/productos",
+  seller: "/vendor/productos",
 };
 
-const ROLE_AREAS: Record<Role, string> = { admin: "/admin", seller: "/panel" };
+const ROLE_AREAS: Record<Role, string> = { admin: "/admin", seller: "/vendor" };
 
 export function isRole(value: unknown): value is Role {
   return value === "admin" || value === "seller";

@@ -11,7 +11,7 @@ import { ProductEditor } from "../product-editor";
 
 export const metadata: Metadata = { title: "Editar producto" };
 
-export default function Page({ params }: PageProps<"/panel/productos/[id]">) {
+export default function Page({ params }: PageProps<"/vendor/productos/[id]">) {
   return (
     <main className="flex flex-col gap-4">
       <h1 className="text-heading text-ink">Editar producto</h1>
@@ -22,9 +22,9 @@ export default function Page({ params }: PageProps<"/panel/productos/[id]">) {
   );
 }
 
-async function EditProduct({ params }: { params: PageProps<"/panel/productos/[id]">["params"] }) {
+async function EditProduct({ params }: { params: PageProps<"/vendor/productos/[id]">["params"] }) {
   const { id: rawId } = await params;
-  const user = await requireRole("seller", `/panel/productos/${encodeURIComponent(rawId)}`);
+  const user = await requireRole("seller", `/vendor/productos/${encodeURIComponent(rawId)}`);
   const id = parseId(rawId);
   if (!id) notFound();
 

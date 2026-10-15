@@ -2,14 +2,14 @@
 
 Online store for agricultural products in the Dominican Republic local market. Sellers (fincas, producers) list their products; buyers browse and order them. UI is in Spanish, prices are in Dominican pesos (RD$).
 
-> **Status:** early prototype. The home page lists products from the database, and each card opens its detail page. Sellers and admins can sign in: sellers manage their own products in `/panel`, admins manage sellers in `/admin` (spec: [`specs/001-auth-and-roles.md`](specs/001-auth-and-roles.md)). Catalog, cart, checkout and orders are still placeholders. See [Roadmap](#roadmap).
+> **Status:** early prototype. The home page presents GOLDVEG, and `/productos` lists the available products from the database grouped by category, with search by name, category quick filters and pagination; each card opens its detail page. Sellers and admins can sign in: sellers manage their own products in `/vendor`, admins manage sellers in `/admin` (spec: [`specs/001-auth-and-roles.md`](specs/001-auth-and-roles.md)). The cart icon on a product card (or "Agregar al carrito" on the product page) saves a reference (`{productId, qty}`) in the browser's localStorage; the header cart icon shows how many products are in it and `/carrito` lists them grouped by seller with quantities and a total. Checkout and orders are still placeholders. See [Roadmap](#roadmap).
 
 ## Tech stack
 
 | Layer | Choice |
 |---|---|
 | Framework | Next.js 16.4 (App Router, Turbopack) with Cache Components enabled |
-| UI | React 19, Tailwind CSS v4, Agrostore design system (`components/agrostore`), Figtree font; shadcn/ui available for extra primitives |
+| UI | React 19, Tailwind CSS v4, Agrostore design system (`components/agrostore`), Figtree font, `lucide-react` icons; shadcn/ui available for extra primitives |
 | Database | PostgreSQL 17 (Docker for local dev) |
 | ORM | Drizzle ORM + drizzle-kit, `postgres` (postgres.js) driver |
 | Auth | Better Auth 1.7 (email + password, admin plugin), database sessions |
@@ -35,8 +35,8 @@ BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 BETTER_AUTH_URL=http://localhost:3000
 ENV
 
-# 4. Create the tables from src/db/schema.ts
-npx drizzle-kit push
+# 4. Create the tables (applies the migrations in drizzle/)
+npm run db:migrate
 
 # 5. Load sample data (seller finca@example.com / agro-seller-dev, two products)
 npm run seed
@@ -48,7 +48,7 @@ ADMIN_EMAIL=you@example.com ADMIN_NAME="Your Name" ADMIN_PASSWORD=choose-a-passw
 npm run dev
 ```
 
-Open http://localhost:3000 and sign in at `/ingresar`. There is no public sign-up: admins create sellers in `/admin/vendedores`.
+Open http://localhost:3000 and sign in at `/auth/login`. There is no public sign-up: admins create sellers in `/admin/vendedores`.
 
 The seed is safe to run more than once; it skips data that already exists. To start over with an empty database, run `docker compose down -v` (this deletes the database volume) and repeat steps 2, 4, 5 and 6.
 
@@ -59,7 +59,10 @@ The seed is safe to run more than once; it skips data that already exists. To st
 | `npm run dev` | Dev server on port 3000 |
 | `npm run build` / `npm start` | Production build / serve |
 | `npm run lint` | ESLint |
-| `npx drizzle-kit push` | Sync the schema to the database |
+| `npm run typecheck` | Generate route types and run `tsc` |
+| `npm run db:generate` | Create a migration in `drizzle/` from changes to `src/db/schema.ts` |
+| `npm run db:migrate` | Apply pending migrations (`DATABASE_URL_UNPOOLED`, else `DATABASE_URL`) |
+| `npm run db:check` | Check the migration files are consistent |
 | `npx drizzle-kit studio` | Browse the database in a web UI |
 | `npm run seed` | Insert sample data (`SEED_SELLER_PASSWORD` overrides the seller's password) |
 | `npm run create-admin` | Create an admin from `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD` (skips if the email exists) |
@@ -73,8 +76,9 @@ src/
     layout.tsx         Root layout (Geist fonts, metadata, title template)
     not-found.tsx      404 page
     (tienda)/          Storefront pages + header/footer layout (see Routes)
-    (auth)/            Sign in (/ingresar) and "sell with us" contact page (/registro)
-    panel/             Seller area: products, account
+    api/cart/          Public read of the products in a browser cart (name, price, stock)
+    auth/              Auth pages: sign in (/auth/login) and "sell with us" contact page (/auth/registrar)
+    vendor/            Seller area: products, account
     admin/             Admin area: sellers, account
     api/auth/          Better Auth HTTP handler
     globals.css        Tailwind v4 + shadcn theme variables
@@ -86,14 +90,17 @@ src/
     auth.ts            Better Auth instance (auth-options.ts holds the shared config)
     dal.ts             getCurrentUser / requireRole: the authorization gate
     auth-actions.ts    signIn / signOut server actions
-    data/              Server-only queries (seller products, vendors, store filters)
+    data/              Server-only queries (catalog, seller products, vendors, store filters)
+    list-query.ts      URL params, search term and pagination helpers shared by every list
+    cart.ts            Cart lines kept in localStorage (parse, add, limits); cart-store.ts is its React hook
     validation/        Zod schemas shared by forms and server actions
     site-config.ts     Contact details (placeholders)
-  proxy.ts             Redirects signed-out visitors away from /panel and /admin
-components/            App chrome: site-header, site-footer, dashboard-shell, account-link, forms
+  proxy.ts             Redirects signed-out visitors away from /vendor and /admin
+components/            App chrome: site-header, site-footer, dashboard-shell, account-link, forms,
+                       pagination (prev/next for any list), catalog-search, add-to-cart, cart-link, cart-view
 components/agrostore/  Design-system components + agrostore.css
 components/ui/         shadcn components (button, card, input) + product-list.tsx
-                       (ProductList DB query + ProductListSkeleton)
+                       (ProductList: filtered, paginated products by category, + ProductListSkeleton)
 lib/utils.ts           cn() helper
 docker-compose.yml     Local Postgres
 drizzle.config.ts      drizzle-kit config
@@ -105,31 +112,31 @@ next.config.ts         cacheComponents, partialPrefetching, Tailwind loader
 
 ## Routes
 
-All URLs are in Spanish. Route groups `(tienda)` and `(auth)` share layouts without appearing in the URL.
+Store URLs are in Spanish. Each area has a fixed prefix: `/vendor/*` (seller), `/admin/*` (admin) and `/auth/*` (sign in, sign up, password recovery: `/auth/login`, `/auth/registrar`, `/auth/recuperar-contrasena`). The route group `(tienda)` shares the store layout without appearing in the URL.
 
 | URL | File | Purpose |
 |---|---|---|
-| `/` | `src/app/(tienda)/page.tsx` | Home: product list |
-| `/productos` | `(tienda)/productos/page.tsx` | Catalog with search/filters |
+| `/` | `src/app/(tienda)/page.tsx` | Home: GOLDVEG presentation (static) |
+| `/productos` | `(tienda)/productos/page.tsx` | In-stock products grouped by category; filter by name (`?q=`) and category chips (`?categoria=`), 12 per page (`?pagina=`) |
 | `/productos/[id]` | `(tienda)/productos/[id]/page.tsx` | Product detail |
 | `/vendedores/[id]` | `(tienda)/vendedores/[id]/page.tsx` | Seller profile |
-| `/carrito` | `(tienda)/carrito/page.tsx` | Shopping cart |
+| `/carrito` | `(tienda)/carrito/page.tsx` | Shopping cart: products saved in localStorage `agrostore.cart`, loaded through `GET /api/cart?ids=…`; change quantity, remove, total |
 | `/pagar` | `(tienda)/pagar/page.tsx` | Checkout |
 | `/pedidos` | `(tienda)/pedidos/page.tsx` | Buyer's orders |
 | `/pedidos/[id]` | `(tienda)/pedidos/[id]/page.tsx` | Order detail / confirmation |
 | `/cuenta` | `(tienda)/cuenta/page.tsx` | Account profile |
-| `/ingresar` | `(auth)/ingresar/page.tsx` | Sign in |
-| `/registro` | `(auth)/registro/page.tsx` | How to become a seller (contact placeholders) |
-| `/panel/productos` | `panel/productos/page.tsx` | Seller: own products (seller only) |
-| `/panel/productos/nuevo` | `panel/productos/nuevo/page.tsx` | Seller: publish a product |
-| `/panel/productos/[id]` | `panel/productos/[id]/page.tsx` | Seller: edit own product |
-| `/panel/cuenta` | `panel/cuenta/page.tsx` | Seller: profile + change password |
+| `/auth/login` | `auth/login/page.tsx` | Sign in |
+| `/auth/registrar` | `auth/registrar/page.tsx` | How to become a seller (contact placeholders) |
+| `/vendor/productos` | `vendor/productos/page.tsx` | Seller: own products (seller only) |
+| `/vendor/productos/nuevo` | `vendor/productos/nuevo/page.tsx` | Seller: publish a product |
+| `/vendor/productos/[id]` | `vendor/productos/[id]/page.tsx` | Seller: edit own product |
+| `/vendor/cuenta` | `vendor/cuenta/page.tsx` | Seller: profile + change password |
 | `/admin/vendedores` | `admin/vendedores/page.tsx` | Admin: sellers list + search |
 | `/admin/vendedores/nuevo` | `admin/vendedores/nuevo/page.tsx` | Admin: create seller |
 | `/admin/vendedores/[id]` | `admin/vendedores/[id]/page.tsx` | Admin: edit seller, set password, deactivate |
 | `/admin/cuenta` | `admin/cuenta/page.tsx` | Admin: change password |
 
-Layouts: `(tienda)/layout.tsx` adds the site header and footer; `(auth)/layout.tsx` centers a card; `panel/layout.tsx` and `admin/layout.tsx` use `components/dashboard-shell.tsx`. Unknown URLs render `src/app/not-found.tsx`. `/` and `/productos/[id]` show real data; the rest are placeholders. Product cards on the home page link to their detail page.
+Layouts: `(tienda)/layout.tsx` adds the site header and footer; `auth/layout.tsx` centers a card; `vendor/layout.tsx` and `admin/layout.tsx` use `components/dashboard-shell.tsx`. Unknown URLs render `src/app/not-found.tsx`. `/` and `/productos/[id]` show real data; the rest are placeholders. Product cards on the home page link to their detail page.
 
 ## Data model
 
@@ -143,7 +150,7 @@ Prices are stored as integer **centavos** of DOP (`25000` = RD$ 250.00). `catego
 
 | | Seller | Admin |
 |---|---|---|
-| Signs in at | `/ingresar` → `/panel/productos` | `/ingresar` → `/admin/vendedores` |
+| Signs in at | `/auth/login` → `/vendor/productos` | `/auth/login` → `/admin/vendedores` |
 | Can | List, publish and edit **own** products; change own password | Create and edit sellers, set their password, deactivate/reactivate them; change own password |
 
 - Accounts: no public sign-up. The first admin comes from `npm run create-admin`; admins create sellers.
@@ -189,7 +196,7 @@ How the current layouts adapt:
 | Area | Phone | Tablet | Desktop |
 |---|---|---|---|
 | Header | Logo, Carrito, Ingresar on top; other links in a swipeable row below | One row, all links | One row, all links |
-| Home product grid | 2 columns | 3 columns | 4 columns |
+| Product grid (`/productos`) | 2 columns | 3 columns | 4 columns |
 | Product detail | Photo above details | Photo and details side by side | Side by side |
 | Seller and admin panels | Top bar + section links in a swipeable row | Sidebar on the left | Sidebar on the left |
 | Panel lists (products, sellers) | Stacked cards | Table | Table |
@@ -201,6 +208,15 @@ Rules: no horizontal page scrolling at 360px; tap targets at least 44px tall (`m
 ## Rendering model
 
 Cache Components is on (`cacheComponents: true`), so every uncached data read must sit inside `<Suspense>` or be cached with `"use cache"`. Otherwise Next.js reports a "blocking route" error. The home page streams: the heading is in the static shell, and the product grid streams in behind a skeleton that matches its layout.
+
+## Deploy
+
+Hosted on **Vercel** (free Hobby plan during the private beta) with **Neon** Postgres, deployed by **GitHub Actions** (`.github/workflows/ci-cd.yml`):
+
+- **Pull request:** checks (typecheck, lint, tests, migrations up to date), then migrate the Neon `preview` branch, then a protected preview deployment, with the URL commented on the PR.
+- **Merge to `main`:** checks, then migrate the Neon `main` branch, then a production deployment.
+
+Step-by-step setup, the day-to-day workflow, schema changes, rollback and troubleshooting are in **[docs/DEPLOY.md](docs/DEPLOY.md)**.
 
 ## Roadmap
 

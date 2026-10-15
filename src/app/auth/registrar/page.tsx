@@ -36,7 +36,7 @@ export default function Page() {
           </div>
         ))}
       </dl>
-      <ButtonLink href="/ingresar" variant="secondary" fullWidth className="mt-6">
+      <ButtonLink href="/auth/login" variant="secondary" fullWidth className="mt-6">
         Ya tengo cuenta
       </ButtonLink>
     </main>

@@ -1,22 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { AccountLink, SignInLink } from "@/components/account-link";
+import { AccountLink } from "@/components/account-link";
+import { CartLink } from "@/components/cart-link";
+import { navLinkClass } from "@/components/nav-link-class";
 
-const linkClass =
-  "inline-flex min-h-11 items-center whitespace-nowrap rounded-sm text-body-sm font-semibold text-ink hover:text-green-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600";
-
-function NavLink({
-  href,
-  children,
-  className,
-}: {
-  href: string;
-  children: string;
-  className?: string;
-}) {
+function NavLink({ href, children }: { href: string; children: string }) {
   return (
-    <li className={className}>
-      <Link href={href} className={linkClass}>
+    <li>
+      <Link href={href} className={navLinkClass}>
         {children}
       </Link>
     </li>
@@ -36,27 +27,13 @@ export function SiteHeader() {
 
         <ul className="order-3 -mx-4 flex w-[calc(100%+2rem)] gap-5 overflow-x-auto border-t border-line px-4 md:order-2 md:mx-0 md:w-auto md:gap-6 md:overflow-visible md:border-0 md:px-0">
           <NavLink href="/productos">Productos</NavLink>
-          <NavLink href="/pedidos" className="md:hidden">
-            Mis pedidos
-          </NavLink>
-          <NavLink href="/cuenta" className="md:hidden">
-            Cuenta
-          </NavLink>
         </ul>
 
         <ul className="order-2 ml-auto flex items-center gap-4 md:order-3 md:gap-6">
-          <NavLink href="/pedidos" className="hidden md:block">
-            Mis pedidos
-          </NavLink>
-          <NavLink href="/cuenta" className="hidden md:block">
-            Cuenta
-          </NavLink>
-          <NavLink href="/carrito">Carrito</NavLink>
-          <li>
-            <Suspense fallback={<SignInLink />}>
-              <AccountLink />
-            </Suspense>
-          </li>
+          <CartLink />
+          <Suspense fallback={null}>
+            <AccountLink />
+          </Suspense>
         </ul>
       </nav>
     </header>
