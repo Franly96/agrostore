@@ -19,6 +19,6 @@ export default function Page() {
 }
 
 async function NewProduct() {
-  await requireRole("seller", "/vendor/productos/nuevo");
-  return <ProductEditor action={createProduct} submitLabel="Publicar producto" />;
+  const user = await requireRole("seller", "/vendor/productos/nuevo");
+  return <ProductEditor action={createProduct} submitLabel="Publicar producto" sellerId={user.id} />;
 }

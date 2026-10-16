@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useCallback, useState, type ChangeEvent, type FormEvent } from "react";
 import { Button } from "./button";
 import { CATEGORIES, PROVINCES, UNITS } from "./constants";
 import { cx } from "./format";
+import { ImageUploader, type PhotoUploader, type UploadedPhoto } from "./image-uploader";
 import { Select } from "./select";
 import { TextField } from "./text-field";
 
@@ -17,7 +18,18 @@ export type ProductFormValues = {
   unlimitedStock: boolean;
   description: string;
   organic: boolean;
+  /** JSON array of uploaded photos, first = cover. Posted as a hidden field. */
+  images: string;
 };
+
+function parsePhotos(json: string | undefined): UploadedPhoto[] {
+  try {
+    const value = JSON.parse(json || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
 
 type FieldErrors = Partial<Record<keyof ProductFormValues, string>>;
 
@@ -36,6 +48,8 @@ export type ProductFormProps = {
   validate?: (values: ProductFormValues) => FieldErrors;
   /** Errors returned by the server; shown until the next submit. */
   serverErrors?: FieldErrors;
+  /** Resizes and uploads one photo. Without it the form has no photo section. */
+  uploadPhoto?: PhotoUploader;
   className?: string;
 };
 
@@ -51,6 +65,7 @@ export function ProductForm({
   pending = false,
   validate,
   serverErrors = {},
+  uploadPhoto,
   className,
 }: ProductFormProps) {
   const [v, setV] = useState<ProductFormValues>({
@@ -63,7 +78,14 @@ export function ProductForm({
     unlimitedStock: init.unlimitedStock ?? false,
     description: init.description ?? "",
     organic: init.organic ?? false,
+    images: init.images ?? "[]",
   });
+  const [initialPhotos] = useState(() => parsePhotos(init.images));
+  const [uploading, setUploading] = useState(false);
+  const onPhotos = useCallback(
+    (photos: UploadedPhoto[]) => setV((prev) => ({ ...prev, images: JSON.stringify(photos) })),
+    [],
+  );
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
   const errors: FieldErrors = { ...serverErrors, ...clientErrors };
 
@@ -178,9 +200,21 @@ export function ProductForm({
         <input type="checkbox" name="organic" checked={v.organic} onChange={set("organic")} />
         <span>Producto orgánico</span>
       </label>
+      {uploadPhoto ? (
+        <>
+          <ImageUploader
+            initialPhotos={initialPhotos}
+            uploadPhoto={uploadPhoto}
+            onChange={onPhotos}
+            onBusyChange={setUploading}
+            error={errors.images}
+          />
+          <input type="hidden" name="images" value={v.images} />
+        </>
+      ) : null}
       <div className="ag-form-actions">
-        <Button type="submit" disabled={pending}>
-          {pending ? pendingLabel : submitLabel}
+        <Button type="submit" disabled={pending || uploading}>
+          {uploading ? "Subiendo fotos…" : pending ? pendingLabel : submitLabel}
         </Button>
       </div>
     </form>

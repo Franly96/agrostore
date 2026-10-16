@@ -1,0 +1,33 @@
+/* ImageUploader (app addition; agrostore.css stays a mirror of the design system). */
+@layer components {
+.ag-photos { display: flex; flex-direction: column; gap: var(--space-2); font-family: var(--font-sans); min-width: 0; }
+.ag-photos-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.ag-photos-count { font-weight: 400; color: var(--ink-muted); }
+.ag-photos-add { position: relative; min-height: 44px; }
+.ag-photos-add:has(.ag-photos-input:focus-visible) { outline: 2px solid var(--green-600); outline-offset: 2px; }
+.ag-photos-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+
+.ag-photos-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+@media (min-width: 768px) { .ag-photos-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ag-photo { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.ag-photo-frame {
+  position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--green-100);
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+}
+.ag-photo-error .ag-photo-frame { border-color: var(--danger); }
+.ag-photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ag-photo-cover {
+  position: absolute; top: var(--space-2); left: var(--space-2); font-size: 12px; line-height: 16px; font-weight: 600;
+  padding: 2px var(--space-2); border-radius: var(--radius-sm); background: var(--green-800); color: var(--surface);
+}
+.ag-photo-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--line); }
+.ag-photo-progress span { display: block; height: 100%; background: var(--green-600); transition: width .15s; }
+.ag-photo-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.ag-photo-btn {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-pill); cursor: pointer;
+}
+.ag-photo-btn:hover:not(:disabled) { background: var(--green-100); color: var(--green-800); }
+.ag-photo-btn:disabled { cursor: not-allowed; color: var(--ink-muted); background: var(--surface-soft); }
+.ag-photo-btn:focus-visible { outline: 2px solid var(--green-600); outline-offset: 2px; }
+}

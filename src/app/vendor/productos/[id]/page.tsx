@@ -36,6 +36,7 @@ async function EditProduct({ params }: { params: PageProps<"/vendor/productos/[i
       action={updateProduct.bind(null, id)}
       initialValues={productToDraft(product)}
       submitLabel="Guardar cambios"
+      sellerId={user.id}
     />
   );
 }

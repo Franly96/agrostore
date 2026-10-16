@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Draft, awaiting review** |
+| Status | **Approved** (2026-10-15). `products.image_url` is dropped in a second release, after `product_images` ships (migrations run before the new code is live). |
 | Date | 2026-10-14 |
 | Scope | Sellers upload up to 5 photos per product; the store shows them on cards and the detail page |
 | Depends on | Spec 001 (seller panel, `requireRole`), a Vercel project with a Blob store (spec 004, phase 1) |

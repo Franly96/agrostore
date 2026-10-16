@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "../../components/agrostore/agrostore.css";
+@import "../../components/agrostore/image-uploader.css";
 
 @custom-variant dark (&:is(.dark *));
 

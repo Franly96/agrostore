@@ -1,11 +1,23 @@
 import { z } from "zod";
 import { CATEGORIES, PROVINCES, UNITS } from "@/components/agrostore/constants";
+import { MAX_IMAGES } from "@/src/lib/images/paths";
 import { checkbox } from "./fields";
 
 const MAX_PRICE = 1_000_000;
 const MAX_STOCK = 1_000_000;
 const PRICE_MSG = "Indica un precio mayor que 0.";
 const STOCK_MSG = "La cantidad debe ser un número entero, ej. 50.";
+
+const PHOTO_MSG = "Las fotos no son válidas. Súbelas de nuevo.";
+
+/** One uploaded photo as the browser reports it. Ownership is checked in the action. */
+export const photoSchema = z.object({
+  url: z.string({ error: PHOTO_MSG }).max(500, { error: PHOTO_MSG }),
+  pathname: z.string({ error: PHOTO_MSG }).min(1, { error: PHOTO_MSG }).max(300, { error: PHOTO_MSG }),
+  width: z.number({ error: PHOTO_MSG }).int({ error: PHOTO_MSG }).min(1, { error: PHOTO_MSG }).max(4000, { error: PHOTO_MSG }),
+  height: z.number({ error: PHOTO_MSG }).int({ error: PHOTO_MSG }).min(1, { error: PHOTO_MSG }).max(4000, { error: PHOTO_MSG }),
+});
+export type PhotoInput = z.infer<typeof photoSchema>;
 
 export const productSchema = z.object({
   name: z
@@ -50,6 +62,24 @@ export const productSchema = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
   organic: checkbox,
+  // Hidden JSON field from the photo uploader, in display order (first = cover).
+  images: z
+    .string()
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return [];
+      try {
+        return JSON.parse(v) as unknown;
+      } catch {
+        ctx.issues.push({ code: "custom", message: PHOTO_MSG, input: v });
+        return z.NEVER;
+      }
+    })
+    .pipe(
+      z
+        .array(photoSchema, { error: PHOTO_MSG })
+        .max(MAX_IMAGES, { error: `Solo puedes subir hasta ${MAX_IMAGES} fotos.` }),
+    ),
 });
 
 export type ProductField = keyof z.input<typeof productSchema>;
@@ -80,6 +110,8 @@ export type ProductDraft = {
   unlimitedStock: boolean;
   description: string;
   organic: boolean;
+  /** JSON array of photos (see `photoSchema`). */
+  images: string;
 };
 
 /** Client-side check with the same schema the server action uses. */
@@ -108,6 +140,7 @@ export function productToDraft(p: {
   unlimitedStock: boolean;
   description: string | null;
   organic: boolean;
+  images?: PhotoInput[];
 }): ProductDraft {
   return {
     name: p.name,
@@ -119,5 +152,8 @@ export function productToDraft(p: {
     unlimitedStock: p.unlimitedStock,
     description: p.description ?? "",
     organic: p.organic,
+    images: JSON.stringify(
+      (p.images ?? []).map(({ url, pathname, width, height }) => ({ url, pathname, width, height })),
+    ),
   };
 }

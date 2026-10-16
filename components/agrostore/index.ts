@@ -4,6 +4,12 @@ export { CartItem, type CartItemProps } from "./cart-item";
 export { CategoryChips, type CategoryChipsProps } from "./category-chips";
 export { CATEGORIES, PROVINCES, UNITS } from "./constants";
 export { centsToPesos, formatRD } from "./format";
+export {
+  ImageUploader,
+  type ImageUploaderProps,
+  type PhotoUploader,
+  type UploadedPhoto,
+} from "./image-uploader";
 export { PriceTag } from "./price-tag";
 export { ProductCard, type ProductCardProps } from "./product-card";
 export { ProductForm, type ProductFormProps, type ProductFormValues } from "./product-form";

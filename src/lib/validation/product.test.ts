@@ -67,8 +67,41 @@ describe("toProductRow", () => {
   });
 });
 
+describe("productSchema images", () => {
+  const photo = { url: "https://s.public.blob.vercel-storage.com/products/7/a.webp", pathname: "products/7/a.webp", width: 1600, height: 1200 };
+
+  it("defaults to no photos when the field is missing or empty", () => {
+    expect(productSchema.parse(valid).images).toEqual([]);
+    expect(productSchema.parse({ ...valid, images: "" }).images).toEqual([]);
+  });
+
+  it("parses the hidden JSON field in order", () => {
+    const second = { ...photo, pathname: "products/7/b.webp" };
+    expect(productSchema.parse({ ...valid, images: JSON.stringify([photo, second]) }).images).toEqual([photo, second]);
+  });
+
+  it("rejects more than 5 photos with a Spanish message", () => {
+    const r = productSchema.safeParse({ ...valid, images: JSON.stringify(Array(6).fill(photo)) });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].message).toBe("Solo puedes subir hasta 5 fotos.");
+  });
+
+  it.each([
+    ["not json", "{oops"],
+    ["not an array", JSON.stringify({ url: "x" })],
+    ["zero width", JSON.stringify([{ ...photo, width: 0 }])],
+    ["huge height", JSON.stringify([{ ...photo, height: 5000 }])],
+    ["fractional width", JSON.stringify([{ ...photo, width: 10.5 }])],
+    ["missing pathname", JSON.stringify([{ url: photo.url, width: 10, height: 10 }])],
+  ])("rejects %s", (_name, images) => {
+    const r = productSchema.safeParse({ ...valid, images });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].message).toBe("Las fotos no son válidas. Súbelas de nuevo.");
+  });
+});
+
 describe("validateProductDraft", () => {
-  const draft = { ...valid, unlimitedStock: false, organic: false };
+  const draft = { ...valid, unlimitedStock: false, organic: false, images: "[]" };
 
   it("returns no errors for a valid draft", () => {
     expect(validateProductDraft(draft)).toEqual({});
