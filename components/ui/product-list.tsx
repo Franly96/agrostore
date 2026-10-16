@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AddToCartButton } from "@/components/add-to-cart";
 import { CategoryChips, ProductCard, centsToPesos } from "@/components/agrostore";
@@ -109,7 +110,18 @@ export async function ProductList({
                       unit={p.unit}
                       seller={p.sellerName}
                       province={p.province ?? undefined}
-                      imageSrc={p.imageUrl ?? undefined}
+                      image={
+                        p.coverUrl ? (
+                          <Image
+                            src={p.coverUrl}
+                            alt={p.name}
+                            fill
+                            sizes="(min-width: 1024px) 240px, (min-width: 768px) 33vw, 50vw"
+                            // The first row is above the fold on every width.
+                            loading={items.indexOf(p) < 4 ? "eager" : "lazy"}
+                          />
+                        ) : undefined
+                      }
                       badges={p.organic ? [{ label: "Orgánico", tone: "green" }] : []}
                       action={
                         <AddToCartButton

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Badge, ButtonLink, PriceTag, centsToPesos } from "@/components/agrostore";
+import { Leaf } from "@/components/agrostore/leaf";
 import { FormAlert } from "@/components/form-alert";
 import { requireRole } from "@/src/lib/dal";
 import { Pagination } from "@/components/pagination";
@@ -30,6 +32,19 @@ export default function Page({ searchParams }: PageProps<"/vendor/productos">) {
 }
 
 type Item = Awaited<ReturnType<typeof listSellerProducts>>[number];
+
+/** 48px cover photo, or the leaf placeholder when the product has none. */
+function Thumb({ item }: { item: Item }) {
+  return (
+    <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-sm bg-green-100">
+      {item.coverUrl ? (
+        <Image src={item.coverUrl} alt="" width={48} height={48} sizes="48px" className="size-full object-cover" />
+      ) : (
+        <Leaf size={24} />
+      )}
+    </span>
+  );
+}
 
 function Availability({ item }: { item: Item }) {
   if (item.unlimitedStock) return <span className="text-body-sm text-ink-muted">Sin límite</span>;
@@ -72,9 +87,12 @@ async function SellerProducts({
                   href={`/vendor/productos/${item.id}`}
                   className="flex flex-col gap-1 rounded-md border border-line bg-surface p-4 hover:border-ink-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                 >
-                  <span className="flex items-start justify-between gap-2">
-                    <span className="text-body font-semibold text-ink">{item.name}</span>
-                    {item.organic ? <Badge tone="green">Orgánico</Badge> : null}
+                  <span className="flex items-start gap-4">
+                    <Thumb item={item} />
+                    <span className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                      <span className="text-body font-semibold text-ink">{item.name}</span>
+                      {item.organic ? <Badge tone="green">Orgánico</Badge> : null}
+                    </span>
                   </span>
                   <span className="text-body-sm text-ink-muted">{item.category}</span>
                   <span className="flex flex-wrap items-center justify-between gap-2">
@@ -102,9 +120,12 @@ async function SellerProducts({
                 {items.map((item) => (
                   <tr key={item.id} className="border-b border-line last:border-0">
                     <td className="px-4 py-3">
-                      <span className="flex flex-wrap items-center gap-2 text-body font-semibold text-ink">
-                        {item.name}
-                        {item.organic ? <Badge tone="green">Orgánico</Badge> : null}
+                      <span className="flex items-center gap-4">
+                        <Thumb item={item} />
+                        <span className="flex flex-wrap items-center gap-2 text-body font-semibold text-ink">
+                          {item.name}
+                          {item.organic ? <Badge tone="green">Orgánico</Badge> : null}
+                        </span>
                       </span>
                     </td>
                     <td className="px-4 py-3 text-body-sm text-ink-muted">{item.category}</td>

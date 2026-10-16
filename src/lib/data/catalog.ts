@@ -3,6 +3,7 @@ import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { CATEGORIES } from "@/components/agrostore/constants";
 import { db } from "@/src/db";
 import { products, users } from "@/src/db/schema";
+import { coverImageUrl } from "@/src/lib/data/products";
 import { activeSeller, inStock, sellerDisplayName } from "@/src/lib/data/store";
 import { likePattern, normalizeSearch } from "@/src/lib/list-query";
 
@@ -59,7 +60,7 @@ export function listCatalogProducts({
       unlimitedStock: products.unlimitedStock,
       organic: products.organic,
       province: products.province,
-      imageUrl: products.imageUrl,
+      coverUrl: coverImageUrl,
       sellerName: sellerDisplayName,
     })
     .from(products)

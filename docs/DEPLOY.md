@@ -135,8 +135,11 @@ The free plan gives 1 GB of storage and 100 compute-hours a month, plenty for th
    | `BETTER_AUTH_SECRET` | output of `openssl rand -base64 32` | Production |
    | `BETTER_AUTH_SECRET` | a **different** output of `openssl rand -base64 32` | Preview |
    | `BETTER_AUTH_URL` | `https://agrostore-xyz.vercel.app` (your URL from item 4, no trailing slash) | Production |
+   | `CRON_SECRET` | output of `openssl rand -base64 32` | Production |
 
    Don't set `BETTER_AUTH_URL` for Preview: each preview uses its own Vercel URL automatically (`src/lib/auth-options.ts`).
+
+   `BLOB_READ_WRITE_TOKEN` is added for you when a Blob store is connected to the project (**Storage** tab); check it's enabled for each environment that should upload photos. `CRON_SECRET` protects the daily photo cleanup (`vercel.json` → `/api/cron/cleanup-images`); Vercel sends it automatically, and without it the job refuses to run.
 
 7. **Create a deploy token:** avatar → **Account Settings → Tokens → Create**:
    - name `github-actions-agrostore`

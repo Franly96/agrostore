@@ -1,13 +1,15 @@
 import { eq } from "drizzle-orm";
 import { Suspense } from "react";
+import { AvatarForm } from "@/components/avatar-form";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { db } from "@/src/db";
 import { users } from "@/src/db/schema";
 import { requireRole } from "@/src/lib/dal";
 import type { Role } from "@/src/db/schema";
+import { isDisplayableAvatar } from "@/src/lib/images/paths";
 import { formatDrPhone } from "@/src/lib/validation/vendor";
 
-/** /vendor/cuenta and /admin/cuenta: read-only profile + change password. */
+/** /vendor/cuenta and /admin/cuenta: profile photo (sellers), read-only profile, change password. */
 export function AccountPage({ role, path }: { role: Role; path: string }) {
   return (
     <main className="flex flex-col gap-6">
@@ -28,6 +30,7 @@ async function Profile({ role, path }: { role: Role; path: string }) {
       farmName: users.farmName,
       phone: users.phone,
       province: users.province,
+      image: users.image,
     })
     .from(users)
     .where(eq(users.id, user.id));
@@ -42,6 +45,12 @@ async function Profile({ role, path }: { role: Role; path: string }) {
 
   return (
     <>
+      {role === "seller" ? (
+        <AvatarForm
+          sellerId={user.id}
+          initialUrl={isDisplayableAvatar(profile.image, user.id) ? profile.image : null}
+        />
+      ) : null}
       <section className="max-w-[560px] rounded-md border border-line bg-surface p-4 md:p-6">
         <h2 className="text-title text-ink">Tus datos</h2>
         <dl className="mt-4 grid gap-3 md:grid-cols-2">

@@ -48,6 +48,9 @@ export const authOptions = {
     },
   },
   rateLimit: { enabled: true, storage: "database" },
+  // Sellers may not edit their own user row over HTTP (name and image would be
+  // writable). Server actions still call auth.api.updateUser, which this doesn't block.
+  disabledPaths: ["/update-user"],
 } satisfies BetterAuthOptions;
 
 export function createScriptAuth() {

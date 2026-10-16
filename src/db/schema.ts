@@ -4,8 +4,10 @@ import {
   integer,
   pgTable,
   serial,
+  smallint,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // Auth tables follow Better Auth's schema (src/lib/auth.ts: serial ids, plural
@@ -103,6 +105,7 @@ export const products = pgTable("products", {
   stock: integer("stock").default(0).notNull(),
   unlimitedStock: boolean("unlimited_stock").default(false).notNull(),
   province: text("province"),
+  // Unused since product_images (spec 002); dropped in a later release.
   imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
@@ -110,5 +113,27 @@ export const products = pgTable("products", {
     .$onUpdate(() => new Date())
     .notNull(),
 });
+
+// Up to MAX_IMAGES photos per product, in display order (position 0 = cover).
+export const productImages = pgTable(
+  "product_images",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    // Denormalized for the ownership check and the orphan cleanup.
+    sellerId: integer("seller_id")
+      .notNull()
+      .references(() => users.id),
+    pathname: text("pathname").notNull().unique(), // products/{sellerId}/…; used for del()
+    url: text("url").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    position: smallint("position").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("product_images_product_position_idx").on(t.productId, t.position)],
+);
 
 export type Role = "admin" | "seller";

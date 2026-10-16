@@ -11,8 +11,18 @@ vi.mock("@/src/lib/dal", () => ({
 }));
 vi.mock("@/src/lib/data/products", () => ({
   insertSellerProduct: vi.fn(async () => void calls.dataWrites++),
-  updateSellerProduct: vi.fn(async () => (calls.dataWrites++, true)),
+  updateSellerProduct: vi.fn(async () => (calls.dataWrites++, [])),
+  PhotoInUseError: class extends Error {},
 }));
+vi.mock("@/src/lib/images/blob-store", () => ({
+  verifyUploads: vi.fn(async () => true),
+  verifyUpload: vi.fn(async () => true),
+  removeBlobs: vi.fn(async () => {}),
+}));
+vi.mock("@/src/db", () => ({
+  db: { select: () => ({ from: () => ({ where: async () => [{ image: null }] }) }) },
+}));
+vi.mock("next/server", () => ({ after: () => {} }));
 vi.mock("@/src/lib/data/vendors", () => ({
   getVendor: vi.fn(async (id: number) => ({ id, name: "V", farmName: "F", email: "v@test.do", phone: null, province: null, banned: false })),
 }));
@@ -35,6 +45,7 @@ const { createProduct, updateProduct } = await import("@/src/app/vendor/producto
 const { createVendor, updateVendor, setVendorPassword, setVendorActive } = await import(
   "@/src/app/admin/vendedores/actions"
 );
+const { setAvatar, removeAvatar } = await import("@/src/app/vendor/cuenta/actions");
 
 const idle = { status: "idle" as const };
 const productForm = () => {
@@ -72,6 +83,17 @@ describe("seller product actions", () => {
     await expect(createProduct(idle, productForm())).rejects.toThrow("REDIRECT:/vendor/productos?ok=creado");
     expect(calls.dataWrites).toBe(1);
   });
+
+  it("rejects photos that aren't the seller's own uploads, without writing", async () => {
+    calls.signedInAs = "seller";
+    const { verifyUploads } = await import("@/src/lib/images/blob-store");
+    vi.mocked(verifyUploads).mockResolvedValueOnce(false);
+    const fd = productForm();
+    fd.set("images", JSON.stringify([{ url: "https://evil.example.com/x.webp", pathname: "products/8/x.webp", width: 800, height: 600 }]));
+    const result = await createProduct(idle, fd);
+    expect(result.fieldErrors?.images).toBe("Las fotos no son válidas. Súbelas de nuevo.");
+    expect(calls.dataWrites).toBe(0);
+  });
 });
 
 describe("admin vendor actions", () => {
@@ -88,5 +110,29 @@ describe("admin vendor actions", () => {
     calls.signedInAs = "admin";
     await expect(createVendor(idle, vendorForm())).rejects.toThrow("REDIRECT:/admin/vendedores?ok=creado");
     expect(calls.authWrites).toBe(1);
+  });
+});
+
+describe("seller profile photo actions", () => {
+  const photo = { url: "https://s.public.blob.vercel-storage.com/vendors/7/p.webp", pathname: "vendors/7/p.webp" };
+
+  it.each([null, "admin"])("refuse %s without writing", async (who) => {
+    calls.signedInAs = who;
+    await expect(setAvatar(photo)).rejects.toThrow("REDIRECT:seller");
+    await expect(removeAvatar()).rejects.toThrow("REDIRECT:seller");
+    expect(calls.authWrites).toBe(0);
+  });
+
+  it("rejects malformed input without writing", async () => {
+    calls.signedInAs = "seller";
+    expect(await setAvatar({ url: 42 })).toMatchObject({ ok: false });
+    expect(calls.authWrites).toBe(0);
+  });
+
+  it("writes through auth.api for a seller", async () => {
+    calls.signedInAs = "seller";
+    expect(await setAvatar(photo)).toEqual({ ok: true, url: photo.url });
+    expect(await removeAvatar()).toEqual({ ok: true, url: null });
+    expect(calls.authWrites).toBe(2);
   });
 });

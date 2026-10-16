@@ -19,7 +19,7 @@
 
 ### Non-goals
 
-- Seller avatars, farm cover photos, admin-uploaded images.
+- Farm cover photos, admin-uploaded images. (Seller profile photos were added later; see §11.)
 - Video.
 - Automatic moderation (nudity/spam detection). Open question Q4 covers manual moderation.
 - Editing photos (crop, filters) beyond the automatic resize.
@@ -120,7 +120,7 @@ Seller presses "Guardar" ──► server action (createProduct / updateProduct)
 ## 6. Deleting and cleanup
 
 - Removing a photo in the form deletes its row on save. The blob is deleted after the response with `after(() => del(pathnames))`.
-- **Orphans** (uploaded but never saved, e.g. the seller closed the tab) are handled by a daily Vercel Cron job (`/api/cron/cleanup-images`). It lists `products/` blobs older than 24 hours with no `product_images` row and deletes them. The job is protected with `CRON_SECRET` (spec 004).
+- **Orphans** (uploaded but never saved, e.g. the seller closed the tab) are handled by a daily Vercel Cron job (`/api/cron/cleanup-images`). It lists `products/` blobs older than 24 hours with no `product_images` row (and `vendors/` blobs no `users.image` points at) and deletes them. The job is protected with `CRON_SECRET` (spec 004).
 - Deactivating a seller keeps their photos, so reactivation restores the listing.
 
 ---
@@ -171,6 +171,18 @@ Seller presses "Guardar" ──► server action (createProduct / updateProduct)
 | Q3 | Should a product require at least one photo to be published? | **No**, keep the leaf placeholder. Many sellers will add photos later. |
 | Q4 | Should admins be able to remove a seller's photo (inappropriate content)? | **Yes, in a later spec** with an admin product view. Until then, deactivating the seller hides everything. |
 | Q5 | Keep originals as well as the resized copy? | **No**: only the resized copy is stored |
+
+---
+
+## 11. Addition (2026-10-16): seller profile photo
+
+- **Who:** the seller, in Mi cuenta (`/vendor/cuenta`). Admins don't set it.
+- **Storage:** same Blob store, folder `vendors/{sellerId}/`. Resized in the browser to a 512px center-cropped square (WebP, JPEG fallback), minimum 200px, at most 1 MB.
+- **Token route:** `POST /api/uploads/vendor-avatar` (signed-in seller, own folder only, 20 per hour). It shares `handleImageTokenRequest` (`src/lib/images/token-route.ts`) with the product route.
+- **Saving:** picking a photo uploads it and saves it at once with the `setAvatar` server action (`src/app/vendor/cuenta/actions.ts`): `requireRole("seller")`, then `head()` confirms the file is an image in our store under the seller's folder, then `auth.api.updateUser({ image })` writes Better Auth's existing `users.image` column (no migration). The previous photo is deleted with `after()`. "Quitar foto" (`removeAvatar`) clears it.
+- **Lockdown:** Better Auth's HTTP endpoint `/update-user` is disabled (`disabledPaths`), so a seller can't set `image` (or `name`) to arbitrary values by calling `/api/auth/update-user` directly. Server actions still use `auth.api.updateUser`.
+- **Display:** next to "Vendido por" on the product page (32px). Rendering also checks the URL is a Blob URL in that seller's folder (`isDisplayableAvatar`).
+- **Cleanup:** the daily job also deletes `vendors/` files older than 24 hours that no `users.image` points at.
 
 ---
 

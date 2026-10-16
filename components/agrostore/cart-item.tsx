@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Button } from "./button";
 import { cx, formatRD } from "./format";
 import { Leaf } from "./leaf";
@@ -18,6 +19,8 @@ export type CartItemProps = {
   quantityUnit?: string;
   imageSrc?: string;
   imageAlt?: string;
+  /** Thumbnail element (e.g. next/image); takes precedence over `imageSrc`. */
+  image?: ReactNode;
   onQuantityChange?: (quantity: number) => void;
   onRemove?: () => void;
   className?: string;
@@ -34,6 +37,7 @@ export function CartItem({
   quantityUnit,
   imageSrc,
   imageAlt,
+  image,
   onQuantityChange,
   onRemove,
   className,
@@ -41,7 +45,9 @@ export function CartItem({
   return (
     <div className={cx("ag-cart-item", className)}>
       <div className="ag-cart-thumb">
-        {imageSrc ? (
+        {image ? (
+          image
+        ) : imageSrc ? (
           // eslint-disable-next-line @next/next/no-img-element -- seller photos come from arbitrary hosts
           <img src={imageSrc} alt={imageAlt ?? name} />
         ) : (

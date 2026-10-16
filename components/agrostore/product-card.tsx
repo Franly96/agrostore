@@ -16,6 +16,8 @@ export type ProductCardProps = {
   province?: string;
   imageSrc?: string;
   imageAlt?: string;
+  /** Photo element (e.g. next/image with `fill`); takes precedence over `imageSrc`. */
+  image?: ReactNode;
   badges?: { label: string; tone?: BadgeTone }[];
   soldOut?: boolean;
   /** Makes the whole card a link to this URL. */
@@ -35,6 +37,7 @@ export function ProductCard({
   province,
   imageSrc,
   imageAlt,
+  image,
   badges = [],
   soldOut = false,
   href,
@@ -53,7 +56,9 @@ export function ProductCard({
   return (
     <article className={cx("ag-card", soldOut && "ag-card-soldout", className)}>
       <div className="ag-card-media">
-        {imageSrc ? (
+        {image ? (
+          image
+        ) : imageSrc ? (
           // eslint-disable-next-line @next/next/no-img-element -- seller photos come from arbitrary hosts
           <img src={imageSrc} alt={imageAlt ?? name} loading="lazy" />
         ) : (

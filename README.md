@@ -142,7 +142,10 @@ Layouts: `(tienda)/layout.tsx` adds the site header and footer; `auth/layout.tsx
 
 - **users**: `id`, `name` (contact person), `email` (unique), `role` (`admin` | `seller`), `farmName` (public seller name), `phone` (10 digits), `province`, `banned` (deactivated), Better Auth fields (`emailVerified`, `image`, `banReason`, `banExpires`), `createdAt`, `updatedAt`
 - **sessions**, **accounts** (password hash), **verifications**, **rate_limits**: Better Auth tables
-- **products**: `id`, `sellerId` → users.id, `name`, `description`, `category`, `organic`, `priceCents`, `unit`, `stock` (default 0), `unlimitedStock`, `province`, `imageUrl`, `createdAt`, `updatedAt`
+- **products**: `id`, `sellerId` → users.id, `name`, `description`, `category`, `organic`, `priceCents`, `unit`, `stock` (default 0), `unlimitedStock`, `province`, `imageUrl` (unused, to be dropped), `createdAt`, `updatedAt`
+- **product_images**: `id`, `productId` → products.id (cascade), `sellerId`, `pathname` (unique, `products/{sellerId}/…`), `url`, `width`, `height`, `position` (0 = cover, unique per product), `createdAt`. Up to 5 per product.
+
+Seller profile photos use Better Auth's `users.image` (files under `vendors/{sellerId}/`). Photos live in Vercel Blob; `BLOB_READ_WRITE_TOKEN` must be in `.env.local` or `.env` (`npx vercel env pull .env.local`).
 
 Prices are stored as integer **centavos** of DOP (`25000` = RD$ 250.00). `category`, `unit` and `province` come from the lists in `components/agrostore/constants.ts`. A product is sold out ("Agotado") when it isn't `unlimitedStock` and `stock` is 0. Products of deactivated sellers are hidden from the store.
 
@@ -223,7 +226,7 @@ Step-by-step setup, the day-to-day workflow, schema changes, rollback and troubl
 Each item has a spec in `specs/` that is reviewed before work starts.
 
 1. ~~Auth and roles, seller panel, admin seller management~~ (done, [spec 001](specs/001-auth-and-roles.md))
-2. Product images: Vercel Blob, browser-side resize, up to 5 photos per product ([spec 002](specs/002-product-images.md), draft)
+2. ~~Product images: Vercel Blob, browser-side resize, up to 5 photos per product, seller profile photo~~ (done, [spec 002](specs/002-product-images.md))
 3. Cart, guest checkout and orders: one order per seller, delivery fees per province set by each seller, cash on delivery or bank transfer, WhatsApp coordination; card payments and taxes are future work ([spec 003](specs/003-cart-and-orders.md), reviewed)
 4. Deploy: free tiers while building (Vercel Hobby + Neon Free + Vercel Blob), Vercel Pro from public launch, `.com.do` domain, versioned migrations, CI ([spec 004](specs/004-deploy.md), reviewed)
 

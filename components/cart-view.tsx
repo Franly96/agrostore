@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Badge, Button, ButtonLink, CartItem, centsToPesos, formatRD } from "@/components/agrostore";
 import { MAX_LINE_QTY, type CartLine, type CartProduct } from "@/src/lib/cart";
@@ -203,7 +204,17 @@ export function CartView() {
                       unit={product.unit}
                       quantity={qty}
                       max={maxFor(product)}
-                      imageSrc={product.imageUrl ?? undefined}
+                      image={
+                        product.imageUrl ? (
+                          <Image
+                            src={product.imageUrl}
+                            alt={product.name}
+                            width={72}
+                            height={72}
+                            sizes="72px"
+                          />
+                        ) : undefined
+                      }
                       onQuantityChange={(next) => setCartQty(line.productId, next)}
                       onRemove={() => removeFromCart(line.productId)}
                       // 44px tap targets: the design system's stepper buttons are 32px.

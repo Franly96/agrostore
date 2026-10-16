@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/src/db";
 import { products, users } from "@/src/db/schema";
 import { parseIdList, type CartProduct } from "@/src/lib/cart";
+import { coverImageUrl } from "@/src/lib/data/products";
 import { activeSeller, sellerDisplayName } from "@/src/lib/data/store";
 
 // Public read for the cart page: the browser keeps only product ids and quantities, so it asks
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
       unit: products.unit,
       stock: products.stock,
       unlimitedStock: products.unlimitedStock,
-      imageUrl: products.imageUrl,
+      imageUrl: coverImageUrl,
       sellerId: users.id,
       sellerName: sellerDisplayName,
     })
